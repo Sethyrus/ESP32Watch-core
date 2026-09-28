@@ -1,0 +1,12 @@
+version: "0.1.0"
+description: Board services for the Waveshare ESP32-S3-Touch-AMOLED-2.06 (QMI8658 IMU, BOOT and PWR buttons).
+url: https://github.com/Sethyrus/ESP32Watch-core
+license: MIT
+dependencies:
+  idf: ">=5.5,<5.6"
+  waveshare/esp32_s3_touch_amoled_2_06:
+    version: "^1.0.6"
+    public: true
+  waveshare/qmi8658:
+    version: "^1.0.1"
+    public: true
