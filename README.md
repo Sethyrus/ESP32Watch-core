@@ -17,7 +17,7 @@ Stack: `ESP-IDF 5.5.4` + BSP `waveshare/esp32_s3_touch_amoled_2_06`.
 | Header | API |
 | --- | --- |
 | `imu_service.h` | QMI8658: init, calibracion, lectura de aceleracion ya mapeada a ejes de pantalla y suavizada. |
-| `watch_buttons.h` | `BOOT` (GPIO0) raw y pulsacion corta de `PWR` via IRQ del AXP2101. El debounce queda en la app. |
+| `watch_buttons.h` | `BOOT` (GPIO0) raw y pulsacion corta de `PWR` via IRQ del AXP2101. El debounce queda en la app. Convencion de uso (BOOT = aceptar, PWR = atras/menu) en [ARCHITECTURE](docs/ARCHITECTURE.md#convencion-de-botones). |
 
 Todo usa el bus I2C del BSP (`bsp_i2c_get_handle()`, que lo inicializa en el primer uso). `imu_service` no es thread-safe: llamarlo siempre desde el mismo task.
 

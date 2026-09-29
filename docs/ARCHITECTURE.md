@@ -104,6 +104,23 @@ Reglas iniciales:
 - El long press de `PWR` cercano a 6 s apaga la placa, asi que la UX no debe depender de mantenerlo pulsado demasiado tiempo.
 - Toda politica de sleep, dimming o wake debe vivir en `power_service`, no dispersa en pantallas/apps.
 
+### Convencion De Botones
+
+Los dos botones estan a la derecha: `BOOT` arriba, `PWR` abajo. Todas las apps siguen el mismo reparto, que es el habitual en relojes con dos botones laterales (Samsung Galaxy Watch: Home/Back; Garmin: START/BACK):
+
+| Boton | Pulsacion corta | Pulsacion larga |
+| --- | --- | --- |
+| `BOOT` (arriba) | Aceptar / seleccionar / accion principal (disparar, saltar...) | Opcional: accion secundaria definida por la app (umbral ~700 ms) |
+| `PWR` (abajo) | Atras / cancelar / "No". En partida abre la pausa; con la pausa abierta, vuelve al juego | No usar: ~6 s apaga la placa |
+
+Por que asi: `BOOT` es un GPIO con estado instantaneo (sirve para mantener pulsado, doble click, long press); `PWR` solo entrega eventos de pulsacion corta por I2C (~100 ms de latencia, sin estado de mantenido), asi que solo vale para acciones discretas.
+
+Reglas:
+
+- El tactil sigue siendo la navegacion principal; los botones son atajos y nunca la unica forma de hacer algo.
+- Si una pantalla no tiene accion principal, `BOOT` no hace nada. No se reutiliza como "atras".
+- En la raiz de una app, `PWR` no hace nada (reservado para volver a un futuro launcher).
+
 ## Persistencia
 
 Usar NVS para preferencias pequenas y SPIFFS/SD para datos medianos o assets.

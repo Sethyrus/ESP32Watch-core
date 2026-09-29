@@ -16,6 +16,6 @@
 - `docs/HARDWARE.md`: board parts, pins, buses, sensors, APIs and addresses.
 - `docs/SETUP.md`: ESP-IDF 5.5.4 setup, build/flash, config files and dependencies.
 - `docs/GOTCHAS.md`: known pitfalls and implementation cautions.
-- `docs/ARCHITECTURE.md`: LVGL+BSP decision, repo organization and Brookesia criteria.
+- `docs/ARCHITECTURE.md`: LVGL+BSP decision, repo organization, Brookesia criteria and the app-wide button convention (BOOT = accept, PWR = back/menu).
 - `docs/BRINGUP.md`: hardware validation checklist.
 - `docs/SOURCES.md`: official links, datasheets and examples.
