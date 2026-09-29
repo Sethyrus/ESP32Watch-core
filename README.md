@@ -11,6 +11,8 @@ Stack: `ESP-IDF 5.5.4` + BSP `waveshare/esp32_s3_touch_amoled_2_06`.
 | [ESP32Watch-template](https://github.com/Sethyrus/ESP32Watch-template) | Plantilla para crear un firmware nuevo. |
 | [ESP32Watch-Maze](https://github.com/Sethyrus/ESP32Watch-Maze) | Juego de laberinto controlado por inclinacion (IMU). |
 | [ESP32Watch-Doom](https://github.com/Sethyrus/ESP32Watch-Doom) | Port de Doom (doomgeneric). |
+| [ESP32Watch-Fluid](https://github.com/Sethyrus/ESP32Watch-Fluid) | Simulacion de fluido controlada por la IMU. |
+| [ESP32Watch-Launcher](https://github.com/Sethyrus/ESP32Watch-Launcher) | Launcher de arranque: todas las apps grabadas a la vez, se elige cual abrir. |
 
 ## Componente `watch_board`
 
@@ -18,6 +20,7 @@ Stack: `ESP-IDF 5.5.4` + BSP `waveshare/esp32_s3_touch_amoled_2_06`.
 | --- | --- |
 | `imu_service.h` | QMI8658: init, calibracion, lectura de aceleracion ya mapeada a ejes de pantalla y suavizada. |
 | `watch_buttons.h` | `BOOT` (GPIO0) raw y pulsacion corta de `PWR` via IRQ del AXP2101. El debounce queda en la app. Convencion de uso (BOOT = aceptar, PWR = atras/menu) en [ARCHITECTURE](docs/ARCHITECTURE.md#convencion-de-botones). |
+| `watch_launcher.h` | Modo launcher (desde v0.2.0): `watch_launcher_boot_once()` al principio de `app_main`, `watch_launcher_is_available()` para mostrar "Salir" y `watch_launcher_exit()` para volver. Sin launcher no hacen nada. Ver [ARCHITECTURE](docs/ARCHITECTURE.md#modo-launcher). |
 
 Todo usa el bus I2C del BSP (`bsp_i2c_get_handle()`, que lo inicializa en el primer uso). `imu_service` no es thread-safe: llamarlo siempre desde el mismo task.
 
@@ -31,7 +34,7 @@ dependencies:
   watch_board:
     git: https://github.com/Sethyrus/ESP32Watch-core.git
     path: components/watch_board
-    version: v0.1.0
+    version: v0.2.0
 ```
 
 Y en el `CMakeLists.txt` del componente que lo use: `REQUIRES watch_board`.

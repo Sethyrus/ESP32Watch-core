@@ -43,6 +43,7 @@ Cada firmware (app) vive en su propio repo y comparte lo comun a traves de este:
 | `ESP32Watch-core` | Componente `watch_board` (servicios de placa) y documentacion de hardware. |
 | `ESP32Watch-template` | Esqueleto de proyecto para crear apps nuevas. |
 | `ESP32Watch-Maze`, `ESP32Watch-Doom`, ... | Un firmware por repo, con su README, licencia y releases. |
+| `ESP32Watch-Launcher` | Launcher de arranque: graba todas las apps a la vez y abre la elegida (ver "Modo Launcher"). |
 
 Las apps dependen de `watch_board` via ESP Component Manager (`git` + `path` + `version` en `main/idf_component.yml`), fijado en `dependencies.lock`. Lo especifico de una app se queda en su repo; algo pasa a `core` cuando es hardware puro o lo usan dos apps.
 
@@ -119,7 +120,21 @@ Reglas:
 
 - El tactil sigue siendo la navegacion principal; los botones son atajos y nunca la unica forma de hacer algo.
 - Si una pantalla no tiene accion principal, `BOOT` no hace nada. No se reutiliza como "atras".
-- En la raiz de una app, `PWR` no hace nada (reservado para volver a un futuro launcher).
+- En la raiz de una app, `PWR` vuelve al launcher si la app se arranco desde el (`watch_launcher_is_available()`); en modo standalone no hace nada.
+- En el propio launcher, que no tiene "atras", `PWR` pasa a la siguiente app y `BOOT` abre la seleccionada.
+
+## Modo Launcher
+
+`ESP32Watch-Launcher` permite tener todas las apps grabadas y elegir cual abrir sin reflashear. Cada app sigue siendo su propio firmware:
+
+- Tabla de particiones comun (la define el launcher; cada app lleva una copia en su `partitions.csv`): el launcher en `factory`, una app por slot OTA (`ota_0`, `ota_1`...) y `storage` FAT para el WAD de Doom.
+- El launcher apunta el siguiente arranque al slot elegido y reinicia. Cambiar de app es un reinicio (~1-2 s), asi que cada app arranca siempre limpia y ninguna necesita codigo para "descargarse".
+- Cada app llama a `watch_launcher_boot_once()` lo primero en `app_main`: devuelve el siguiente arranque a `factory`, de modo que cualquier reinicio (salir, cuelgue, apagado con `PWR`) vuelve al launcher.
+- Para salir, `watch_launcher_exit()` (un `esp_restart()`), ofrecido solo si `watch_launcher_is_available()`. Guardar antes lo que deba persistir.
+- NVS es compartida entre todas las apps: cada una usa su propio namespace.
+- En standalone (`idf.py flash` desde el repo de la app) la app ocupa `factory` y las tres funciones no hacen nada.
+
+Detalles, tabla y script de grabacion (`flash_all.sh`) en el README del launcher.
 
 ## Persistencia
 
@@ -145,7 +160,7 @@ Todo cambio de Kconfig debe ir a `sdkconfig.defaults`. Toda decision de particio
 
 No depender de `sdkconfig` para estado del proyecto.
 
-Si se introducen OTA, coredumps o assets grandes en flash, redisenar `partitions.csv` antes de escribir codigo que dependa de offsets/tamanos.
+Las apps usan la tabla comun del launcher (ver "Modo Launcher"): un cambio de offsets o slots se hace en `ESP32Watch-Launcher` y se copia a cada app. Si se introducen coredumps o assets grandes en flash, redisenar esa tabla antes de escribir codigo que dependa de offsets/tamanos.
 
 ## DESIGN.md
 
