@@ -12,7 +12,7 @@ El repo esta alineado con `ESP-IDF 5.5.4`. Evitar migrar a `6.x` sin una razon c
 
 ## Mantener Compatibles LVGL Y esp_lvgl_port
 
-El BSP depende de `espressif/esp_lvgl_port`. La combinacion resuelta y verificada en este repo es `esp_lvgl_port 2.8.0~1` + `lvgl 9.3.0`. El intento con `lvgl 9.2.0` fallo por simbolos esperados por el port, como `LV_COLOR_FORMAT_RGB565_SWAPPED`.
+El BSP depende de `espressif/esp_lvgl_port`. La combinacion resuelta y verificada en este repo es `esp_lvgl_port 2.9.0` + `lvgl 9.3.0`. El intento con `lvgl 9.2.0` fallo por simbolos esperados por el port, como `LV_COLOR_FORMAT_RGB565_SWAPPED`.
 
 ## PSRAM Es Obligatoria Para UI Real
 
@@ -30,7 +30,7 @@ CONFIG_SPIRAM_SPEED_80M=y
 
 La wiki anuncia 32 MB de flash y el esquematico monta `GD25Q256EYIGR` (256 Mbit / 32 MB), pero los ejemplos ESP-IDF oficiales de Waveshare usan `CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y`.
 
-Este repo arranca con 16 MB por compatibilidad. Para usar 32 MB, verificar primero la placa real con `esptool.py flash_id`.
+Confirmado en placa real: el chip es de 32 MB (el boot log avisa `Detected size(32768k) larger than the size in the binary image header(16384k)`, inocuo). Los proyectos siguen en 16 MB por compatibilidad; para usar 32 MB cambiar `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y` y rehacer `partitions.csv`.
 
 Aunque `CONFIG_ESPTOOLPY_FLASHMODE_QIO=y`, el comando final de esptool puede mostrar `--flash_mode dio`. En ESP-IDF 5.5 esto es normal para QIO/QOUT: esptool flashea el bootloader en modo DIO y el bootloader cambia a quad durante la inicializacion.
 
@@ -54,7 +54,7 @@ bsp_display_backlight_off();
 
 `bsp_display_start()` inicializa el brillo al 100%. Si la app quiere otro brillo inicial, llamarlo justo despues de arrancar display.
 
-## Caveats BSP v1.0.6
+## Caveats BSP v1.0.7
 
 El BSP tiene comentarios heredados de otros paneles/placas. Priorizar el codigo real y no la prosa del header.
 
@@ -62,7 +62,7 @@ El BSP tiene comentarios heredados de otros paneles/placas. Priorizar el codigo 
 - Las opciones/ayudas Kconfig mencionan RGB LCD y LEDC PWM, pero esta placa usa panel QSPI `SH8601` y brillo por comando `0x51`.
 - El header I2C menciona dispositivos QMA7981/OV2640, pero en esta placa los dispositivos relevantes son FT3168, QMI8658, PCF85063, AXP2101 y codecs.
 - El BSP aplica `esp_lcd_panel_set_gap(panel_handle, 0x16, 0)` al panel. Si se reemplaza la ruta de display, no olvidar validar el offset X.
-- `LCD_TE` existe en el esquematico como `GPIO13`, pero el BSP v1.0.6 no lo usa directamente en su ruta LVGL.
+- `LCD_TE` existe en el esquematico como `GPIO13`, pero el BSP v1.0.7 no lo usa directamente en su ruta LVGL.
 
 ## ES7210: `0x40` En Scan, `0x80` En Macro
 

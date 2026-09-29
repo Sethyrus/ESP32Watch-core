@@ -11,7 +11,7 @@ Fuentes usadas: wiki oficial Waveshare, repo oficial `waveshareteam/ESP32-S3-Tou
 | MCU | `ESP32-S3R8` | Dual-core LX7, hasta 240 MHz. |
 | Wireless | Wi-Fi 2.4 GHz + Bluetooth LE 5 | Antena SMD integrada segun wiki. |
 | PSRAM | 8 MB octal | Necesaria para LVGL fluido y buffers de display. |
-| Flash | 32 MB segun wiki y esquematico | Chip `GD25Q256EYIGR` = 256 Mbit; los ejemplos ESP-IDF oficiales usan config de 16 MB. |
+| Flash | 32 MB (confirmado en placa real) | Chip `GD25Q256EYIGR` = 256 Mbit; los ejemplos ESP-IDF oficiales usan config de 16 MB. |
 | Display | AMOLED 2.06", 410 x 502 | QSPI, 16-bit RGB565 en BSP. |
 | Touch | `FT3168` | I2C; BSP usa driver compatible `FT5x06`. |
 | IMU | `QMI8658` | Acelerometro + giroscopio 6 ejes, I2C. |
@@ -27,7 +27,7 @@ Fuentes usadas: wiki oficial Waveshare, repo oficial `waveshareteam/ESP32-S3-Tou
 
 Componente recomendado: `waveshare/esp32_s3_touch_amoled_2_06`.
 
-Version resuelta actual: `1.0.6` en `dependencies.lock`.
+Version resuelta actual: `1.0.7` en `dependencies.lock`.
 
 Capacidades declaradas por el BSP:
 
@@ -73,7 +73,7 @@ Estos valores vienen del `Kconfig` del BSP y conviene tratarlos como contrato pr
 | LCD DATA2 | GPIO6 | BSP |
 | LCD DATA3 | GPIO7 | BSP |
 | LCD RST | GPIO8 | BSP |
-| LCD TE | GPIO13 | Esquematico; no usado directamente por BSP v1.0.6. |
+| LCD TE | GPIO13 | Esquematico; no usado directamente por BSP v1.0.7. |
 | Touch RST | GPIO9 | BSP |
 | Touch INT | GPIO38 | BSP |
 | QMI8658 INT1 | GPIO21 | Esquematico; no expuesto por BSP. |
@@ -95,7 +95,7 @@ Estos valores vienen del `Kconfig` del BSP y conviene tratarlos como contrato pr
 
 ## Pines De Esquematico Sin Wrapper BSP
 
-Estos pines o nets aparecen en el esquematico oficial, pero no tienen API de alto nivel en el BSP `waveshare/esp32_s3_touch_amoled_2_06` v1.0.6. Usarlos requiere validar en hardware real y revisar si la funcion comparte bus, rail o comportamiento de alimentacion.
+Estos pines o nets aparecen en el esquematico oficial, pero no tienen API de alto nivel en el BSP `waveshare/esp32_s3_touch_amoled_2_06` v1.0.7. Usarlos requiere validar en hardware real y revisar si la funcion comparte bus, rail o comportamiento de alimentacion.
 
 | Senal / pad | Pin o net | Uso probable | Cuidado |
 | --- | --- | --- | --- |
@@ -137,7 +137,7 @@ Datos validados:
 - Formato BSP: RGB565, `LV_COLOR_FORMAT_RGB565` en LVGL 9.
 - Backlight real: no hay pin PWM; el brillo se controla con comando QSPI `0x51` y parametro `0x00..0xFF`.
 - Offset de panel en BSP: `esp_lcd_panel_set_gap(panel_handle, 0x16, 0)`. Si se reemplaza el BSP, mantener este ajuste o validar visualmente el origen X.
-- LCD TE: el esquematico conecta `LCD_TE` a `GPIO13`, pero el BSP v1.0.6 no lo usa directamente en la ruta LVGL actual.
+- LCD TE: el esquematico conecta `LCD_TE` a `GPIO13`, pero el BSP v1.0.7 no lo usa directamente en la ruta LVGL actual.
 - API BSP: `bsp_display_start()`, `bsp_display_start_with_config()`, `bsp_display_backlight_on()`, `bsp_display_backlight_off()`, `bsp_display_brightness_set(percent)`.
 - `bsp_display_start()` termina llamando `bsp_display_brightness_init()`, que pone brillo al 100%; aplicar el brillo de la app despues de arrancar display.
 - La wiki indica que AMOLED/touch soportan funcionamiento a 40-60 grados C; alta temperatura + humedad pueden provocar polarizacion normal.

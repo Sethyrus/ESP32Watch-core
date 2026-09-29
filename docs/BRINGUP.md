@@ -8,8 +8,11 @@ Confirmar que el baseline `ESP-IDF 5.5.4 + LVGL 9.3.0 + Waveshare BSP` controla 
 
 ## Preparacion
 
+El core no es un proyecto ESP-IDF: el bring-up se hace desde `ESP32Watch-template` (UI `ESP32S3Watch`) o, sin display, desde `examples/basic` de este repo.
+
 ```sh
 source "$HOME/.espressif/v5.5.4/esp-idf/export.sh"
+cd ../ESP32Watch-template
 idf.py set-target esp32s3
 idf.py build
 ```
@@ -17,7 +20,7 @@ idf.py build
 Flash/monitor esperado:
 
 ```sh
-idf.py -p /dev/tty.usbmodem21301 flash monitor
+idf.py -p <PORT> flash monitor
 ```
 
 Salir de monitor: `Ctrl+]`.
@@ -37,10 +40,10 @@ Salir de monitor: `Ctrl+]`.
 
 ## Flash Real
 
-La wiki y el esquematico indican 32 MB (`GD25Q256EYIGR`, 256 Mbit), pero ejemplos oficiales usan 16 MB. Antes de usar particiones de 32 MB:
+La wiki y el esquematico indican 32 MB (`GD25Q256EYIGR`, 256 Mbit), pero ejemplos oficiales usan 16 MB. El boot log de la placa real ya lo confirma (`spi_flash: Detected size(32768k) larger than the size in the binary image header(16384k)`). Para ver fabricante/dispositivo:
 
 ```sh
-esptool.py -p /dev/tty.usbmodem21301 flash_id
+esptool.py -p <PORT> flash_id
 ```
 
 Anotar aqui:
@@ -49,9 +52,9 @@ Anotar aqui:
 | --- | --- |
 | Manufacturer | Pendiente |
 | Device | Pendiente |
-| Detected flash size | Pendiente |
+| Detected flash size | 32 MB (boot log `spi_flash`) |
 
-No cambiar `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y` hasta confirmar la placa real.
+Los proyectos siguen en 16 MB. Si se cambia a `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y`, rehacer `partitions.csv` y mantener la app por debajo de 16 MB.
 
 ## I2C Scan
 
@@ -85,7 +88,7 @@ Validar:
 | Offset | Origen correcto con gap BSP `0x16, 0`. |
 | Locking | Toda modificacion desde tareas FreeRTOS usa `bsp_display_lock()`. |
 | Brillo | 0 apaga/dim, 100 maximo; control por comando `0x51`, no PWM. |
-| TE | `LCD_TE GPIO13` existe en esquematico, pero BSP v1.0.6 no lo usa directamente. |
+| TE | `LCD_TE GPIO13` existe en esquematico, pero BSP v1.0.7 no lo usa directamente. |
 
 ## Touch
 

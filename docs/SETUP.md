@@ -34,16 +34,12 @@ idf.py build
 
 ## Flash Y Monitor
 
-Puerto habitual en macOS (puede variar):
-
-```sh
-/dev/tty.usbmodem21301
-```
+Puerto en macOS: `/dev/tty.usbmodem*`; el numero cambia segun el puerto USB (p. ej. `/dev/tty.usbmodem1101`). Listarlo con `ls /dev/tty.usbmodem*`; sin `-p`, `idf.py` lo autodetecta.
 
 Comando:
 
 ```sh
-idf.py -p /dev/tty.usbmodem21301 flash monitor
+idf.py -p <PORT> flash monitor
 ```
 
 Salir de monitor: `Ctrl+]`.
@@ -75,7 +71,7 @@ Decisiones del baseline:
 - BSP I2C: port 1, 400 kHz.
 - Mounts BSP base: SPIFFS `/spiffs` si existe una particion SPIFFS, SD `/sdcard`.
 
-Nota sobre flash: la wiki y el esquematico indican 32 MB (`GD25Q256EYIGR`), pero los ejemplos ESP-IDF oficiales Waveshare usan 16 MB. Este repo arranca con 16 MB por compatibilidad con esos ejemplos. Si se quiere usar todo el flash, verificar primero con `esptool.py flash_id` y cambiar a `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y`.
+Nota sobre flash: el chip es de 32 MB (`GD25Q256EYIGR`, confirmado en placa real: el boot log avisa `Detected size(32768k) larger than the size in the binary image header(16384k)`). Los proyectos siguen configurados a 16 MB por compatibilidad con los ejemplos oficiales Waveshare; el aviso es inocuo. Para usar todo el flash, cambiar a `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y` y rehacer `partitions.csv`, manteniendo la app por debajo de 16 MB.
 
 ## Particiones
 

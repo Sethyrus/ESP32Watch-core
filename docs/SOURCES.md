@@ -15,11 +15,11 @@ Fuentes primarias y referencias usadas para los proyectos ESP32Watch. Prioridad 
 
 | Componente | URL | Version actual |
 | --- | --- | --- |
-| BSP board | https://components.espressif.com/components/waveshare/esp32_s3_touch_amoled_2_06 | `1.0.6` en `dependencies.lock`. |
+| BSP board | https://components.espressif.com/components/waveshare/esp32_s3_touch_amoled_2_06 | `1.0.7` en `dependencies.lock`. |
 | SH8601 panel | https://components.espressif.com/components/waveshare/esp_lcd_sh8601 | `1.0.2` resuelto por BSP. |
 | QMI8658 IMU | https://components.espressif.com/components/waveshare/qmi8658 | Recomendado al integrar IMU. |
 | LVGL | https://components.espressif.com/components/lvgl/lvgl | `9.3.0` en este repo. |
-| esp_lvgl_port | https://components.espressif.com/components/espressif/esp_lvgl_port | `2.8.0~1` resuelto por BSP. |
+| esp_lvgl_port | https://components.espressif.com/components/espressif/esp_lvgl_port | `2.9.0` resuelto por BSP. |
 | esp_codec_dev | https://components.espressif.com/components/espressif/esp_codec_dev | Audio speaker/mic via BSP. |
 
 El BSP v1.0.6 apunta en Registry a este snapshot de `Waveshare-ESP32-components`:
