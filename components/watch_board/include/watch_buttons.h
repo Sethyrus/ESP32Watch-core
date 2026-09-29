@@ -11,10 +11,11 @@ esp_err_t watch_boot_button_init(void);
 bool watch_boot_button_is_pressed(void);
 
 // PWR button short press, reported by the AXP2101 PMU (PWRON is not a direct GPIO).
-// Requires the BSP I2C bus to be initialized (e.g. after bsp_display_start/new).
+// Uses the BSP I2C bus (bsp_i2c_get_handle() initializes it on first use).
 esp_err_t watch_pwr_key_init(void);
 bool watch_pwr_key_is_available(void);
 
 // Reads and clears the AXP2101 short-press IRQ flag.
-// On a clear failure, *pressed is still true and the write error is returned.
+// On a clear failure, *pressed is still true and the write error is returned;
+// the clear is retried on later calls without reporting the same press again.
 esp_err_t watch_pwr_key_take_short_press(bool *pressed);

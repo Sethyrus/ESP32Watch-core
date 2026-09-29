@@ -1,5 +1,7 @@
 dependencies:
   idf: ">=5.5,<5.6"
+  lvgl/lvgl:
+    version: "9.3.0"
   watch_board:
     version: "*"
     override_path: "../../../components/watch_board"

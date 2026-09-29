@@ -14,10 +14,26 @@
 #define AXP2101_INTSTS2 0x49
 #define AXP2101_PKEY_SHORT_IRQ_BIT (1 << 3)
 #define AXP2101_POLL_TIMEOUT_MS 5
+#define AXP2101_INIT_TIMEOUT_MS 50
+#define AXP2101_CLEAR_TIMEOUT_MS 20
 
 static const char *TAG = "watch_buttons";
 
 static i2c_master_dev_handle_t s_axp2101_dev;
+// Set when a short press was reported but its IRQ flag could not be cleared yet,
+// so the same press is not reported twice.
+static bool s_clear_pending;
+
+static esp_err_t clear_short_press_flag(void)
+{
+    const uint8_t clear_data[2] = {AXP2101_INTSTS2, AXP2101_PKEY_SHORT_IRQ_BIT};
+    esp_err_t err = i2c_master_transmit(s_axp2101_dev, clear_data, 2, AXP2101_CLEAR_TIMEOUT_MS);
+    if (err != ESP_OK) {
+        err = i2c_master_transmit(s_axp2101_dev, clear_data, 2, AXP2101_CLEAR_TIMEOUT_MS);
+    }
+    s_clear_pending = err != ESP_OK;
+    return err;
+}
 
 esp_err_t watch_boot_button_init(void)
 {
@@ -60,10 +76,10 @@ esp_err_t watch_pwr_key_init(void)
 
     // Enable AXP2101 short press interrupt (INTEN2 bit 3).
     uint8_t enable_data[2] = {AXP2101_INTEN2, 0x00};
-    err = i2c_master_transmit_receive(dev, &enable_data[0], 1, &enable_data[1], 1, -1);
+    err = i2c_master_transmit_receive(dev, &enable_data[0], 1, &enable_data[1], 1, AXP2101_INIT_TIMEOUT_MS);
     if (err == ESP_OK) {
         enable_data[1] |= AXP2101_PKEY_SHORT_IRQ_BIT;
-        err = i2c_master_transmit(dev, enable_data, 2, -1);
+        err = i2c_master_transmit(dev, enable_data, 2, AXP2101_INIT_TIMEOUT_MS);
     }
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "PWR short-press IRQ enable failed: %s", esp_err_to_name(err));
@@ -72,6 +88,10 @@ esp_err_t watch_pwr_key_init(void)
     }
 
     s_axp2101_dev = dev;
+    // Drop any short press latched before the app started listening.
+    if (clear_short_press_flag() != ESP_OK) {
+        ESP_LOGW(TAG, "PWR short-press IRQ initial clear failed");
+    }
     return ESP_OK;
 }
 
@@ -94,11 +114,17 @@ esp_err_t watch_pwr_key_take_short_press(bool *pressed)
     uint8_t status = 0;
     esp_err_t err = i2c_master_transmit_receive(s_axp2101_dev, &reg, 1, &status, 1, AXP2101_POLL_TIMEOUT_MS);
     if (err != ESP_OK || (status & AXP2101_PKEY_SHORT_IRQ_BIT) == 0) {
+        if (err == ESP_OK) {
+            s_clear_pending = false;
+        }
         return err;
     }
 
+    if (s_clear_pending) {
+        // Still the press we already reported; only retry the clear.
+        return clear_short_press_flag();
+    }
+
     *pressed = true;
-    // Clear interrupt
-    const uint8_t clear_data[2] = {AXP2101_INTSTS2, AXP2101_PKEY_SHORT_IRQ_BIT};
-    return i2c_master_transmit(s_axp2101_dev, clear_data, 2, AXP2101_POLL_TIMEOUT_MS);
+    return clear_short_press_flag();
 }

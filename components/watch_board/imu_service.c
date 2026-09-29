@@ -16,7 +16,6 @@
 static const char *TAG = "imu_service";
 
 static qmi8658_dev_t s_dev;
-static bool s_initialized;
 static bool s_available;
 static bool s_calibrated;
 static float s_bias_x;
@@ -24,10 +23,19 @@ static float s_bias_y;
 static float s_smooth_x;
 static float s_smooth_y;
 
-static void map_accel_to_screen(const qmi8658_data_t *data, float *x, float *y)
+// Single 6-byte burst read, in milli-g, mapped to screen axes in g.
+static esp_err_t read_screen_accel(float *x, float *y)
 {
-    *x = -data->accelY / 1000.0f;
-    *y = data->accelX / 1000.0f;
+    float ax = 0.0f;
+    float ay = 0.0f;
+    float az = 0.0f;
+    esp_err_t err = qmi8658_read_accel(&s_dev, &ax, &ay, &az);
+    if (err != ESP_OK) {
+        return err;
+    }
+    *x = -ay / 1000.0f;
+    *y = ax / 1000.0f;
+    return ESP_OK;
 }
 
 esp_err_t imu_service_init(void)
@@ -39,14 +47,17 @@ esp_err_t imu_service_init(void)
     i2c_master_bus_handle_t bus = bsp_i2c_get_handle();
     if (bus == NULL) {
         ESP_LOGE(TAG, "BSP I2C handle is not available");
-        s_initialized = true;
         return ESP_ERR_INVALID_STATE;
     }
 
     esp_err_t err = qmi8658_init(&s_dev, bus, QMI8658_ADDRESS_HIGH);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "QMI8658 init failed: %s", esp_err_to_name(err));
-        s_initialized = true;
+        // The driver adds the device before probing it; drop it so a retry doesn't stack handles.
+        if (s_dev.dev_handle != NULL) {
+            i2c_master_bus_rm_device(s_dev.dev_handle);
+            s_dev.dev_handle = NULL;
+        }
         return err;
     }
 
@@ -61,7 +72,6 @@ esp_err_t imu_service_init(void)
     qmi8658_set_accel_unit_mps2(&s_dev, false);
 
     s_available = true;
-    s_initialized = true;
     ESP_LOGI(TAG, "QMI8658 ready");
     return ESP_OK;
 }
@@ -81,12 +91,9 @@ esp_err_t imu_service_calibrate(void)
     ESP_LOGI(TAG, "Starting IMU calibration");
 
     for (int i = 0; i < samples; ++i) {
-        qmi8658_data_t data = {0};
-        err = qmi8658_read_sensor_data(&s_dev, &data);
-        if (err == ESP_OK) {
-            float x = 0.0f;
-            float y = 0.0f;
-            map_accel_to_screen(&data, &x, &y);
+        float x = 0.0f;
+        float y = 0.0f;
+        if (read_screen_accel(&x, &y) == ESP_OK) {
             sum_x += x;
             sum_y += y;
             ++valid_samples;
@@ -122,15 +129,12 @@ esp_err_t imu_service_read(imu_service_accel_t *accel)
         return ESP_ERR_INVALID_STATE;
     }
 
-    qmi8658_data_t data = {0};
-    esp_err_t err = qmi8658_read_sensor_data(&s_dev, &data);
+    float raw_x = 0.0f;
+    float raw_y = 0.0f;
+    esp_err_t err = read_screen_accel(&raw_x, &raw_y);
     if (err != ESP_OK) {
         return err;
     }
-
-    float raw_x = 0.0f;
-    float raw_y = 0.0f;
-    map_accel_to_screen(&data, &raw_x, &raw_y);
 
     if (s_calibrated) {
         raw_x -= s_bias_x;
@@ -143,15 +147,10 @@ esp_err_t imu_service_read(imu_service_accel_t *accel)
     s_smooth_x += alpha * (raw_x - s_smooth_x);
     s_smooth_y += alpha * (raw_y - s_smooth_y);
 
-    if (fabsf(s_smooth_x) < deadzone) {
-        s_smooth_x = 0.0f;
-    }
-    if (fabsf(s_smooth_y) < deadzone) {
-        s_smooth_y = 0.0f;
-    }
-
-    accel->x = s_smooth_x;
-    accel->y = s_smooth_y;
+    // Deadzone applies to the output only; clamping the filter state would stop it from
+    // ever building up from rest and raise the effective threshold to deadzone / alpha.
+    accel->x = fabsf(s_smooth_x) < deadzone ? 0.0f : s_smooth_x;
+    accel->y = fabsf(s_smooth_y) < deadzone ? 0.0f : s_smooth_y;
     return ESP_OK;
 }
 
