@@ -6,8 +6,10 @@
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #define WATCH_BOOT_GPIO GPIO_NUM_0
+#define WATCH_BOOT_DEFAULT_DEBOUNCE_MS 30
 
 #define AXP2101_ADDR 0x34
 #define AXP2101_INTEN2 0x41
@@ -50,6 +52,48 @@ esp_err_t watch_boot_button_init(void)
 bool watch_boot_button_is_pressed(void)
 {
     return gpio_get_level(WATCH_BOOT_GPIO) == 0;
+}
+
+void watch_boot_debouncer_init(watch_boot_debouncer_t *d, uint32_t debounce_ms, uint32_t long_press_ms)
+{
+    const bool pressed = watch_boot_button_is_pressed();
+    *d = (watch_boot_debouncer_t){
+        .debounce_ms = debounce_ms != 0 ? debounce_ms : WATCH_BOOT_DEFAULT_DEBOUNCE_MS,
+        .long_press_ms = long_press_ms,
+        .raw = pressed,
+        .stable = pressed,
+        // A press already held at init never reports short or long.
+        .long_fired = pressed,
+        .changed_us = esp_timer_get_time(),
+    };
+}
+
+watch_boot_event_t watch_boot_debouncer_poll(watch_boot_debouncer_t *d)
+{
+    watch_boot_event_t ev = {0};
+    const int64_t now = esp_timer_get_time();
+    const bool pressed = watch_boot_button_is_pressed();
+    if (pressed != d->raw) {
+        d->raw = pressed;
+        d->changed_us = now;
+    }
+    if (d->raw != d->stable && now - d->changed_us >= (int64_t)d->debounce_ms * 1000) {
+        d->stable = d->raw;
+        if (d->stable) {
+            ev.down = true;
+            d->down_us = now;
+            d->long_fired = false;
+        } else if (!d->long_fired) {
+            ev.short_press = true;
+        }
+    }
+    if (d->stable && !d->long_fired && d->long_press_ms != 0 &&
+        now - d->down_us >= (int64_t)d->long_press_ms * 1000) {
+        d->long_fired = true;
+        ev.long_press = true;
+    }
+    ev.held = d->stable;
+    return ev;
 }
 
 esp_err_t watch_pwr_key_init(void)

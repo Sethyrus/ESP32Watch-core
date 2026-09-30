@@ -1,5 +1,5 @@
-version: "0.2.0"
-description: Board services for the Waveshare ESP32-S3-Touch-AMOLED-2.06 (QMI8658 IMU, BOOT and PWR buttons, launcher boot helpers).
+version: "0.3.0"
+description: Board services for the Waveshare ESP32-S3-Touch-AMOLED-2.06 (QMI8658 IMU, BOOT and PWR buttons, PCF85063 RTC, shared NVS init, launcher boot helpers).
 url: https://github.com/Sethyrus/ESP32Watch-core
 license: MIT
 dependencies:

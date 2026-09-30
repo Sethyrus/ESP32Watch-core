@@ -127,14 +127,14 @@ Si se activa `qmi8658_set_accel_unit_mps2(&dev, true)`, no dividir por `1000.0f`
 
 ## RTC PCF85063
 
-Pendiente de driver propio/minimo. Validar primero por I2C scan.
+Driver minimo en `watch_rtc` (core v0.3.0, validado en Fluid): lee y escribe hora/fecha en BCD, modo 24 h, y detecta la perdida de hora por el flag de oscilador parado.
 
-| Area | Esperado |
+| Area | Resultado |
 | --- | --- |
-| Direccion | `0x51` tipica. |
-| Persistencia | Mantiene hora con bateria si PMU/RTC estan bien alimentados. |
-| Interrupcion | `RTC_INT GPIO39` segun esquematico. |
-| API futura | `rtc_service` o componente propio, no en `main.c`. |
+| Direccion | `0x51`, confirmada. |
+| Persistencia | Conserva la hora entre reinicios (Fluid). Tras apagados largos o sin bateria: sin validar. |
+| Interrupcion | `RTC_INT GPIO39` segun esquematico; sin usar ni validar (alarmas pendientes). |
+| API | `watch_rtc.h`. |
 
 ## PMU AXP2101
 

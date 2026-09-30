@@ -19,7 +19,9 @@ Stack: `ESP-IDF 5.5.4` + BSP `waveshare/esp32_s3_touch_amoled_2_06`.
 | Header | API |
 | --- | --- |
 | `imu_service.h` | QMI8658: init, calibracion, lectura de aceleracion ya mapeada a ejes de pantalla y suavizada. |
-| `watch_buttons.h` | `BOOT` (GPIO0) raw y pulsacion corta de `PWR` via IRQ del AXP2101. El debounce queda en la app. Convencion de uso (BOOT = aceptar, PWR = atras/menu) en [ARCHITECTURE](docs/ARCHITECTURE.md#convencion-de-botones). |
+| `watch_buttons.h` | `BOOT` (GPIO0) raw y con debounce (`watch_boot_debouncer_*`: pulsacion, corta y larga, desde v0.3.0) y pulsacion corta de `PWR` via IRQ del AXP2101. Convencion de uso (BOOT = aceptar, PWR = atras/menu) en [ARCHITECTURE](docs/ARCHITECTURE.md#convencion-de-botones). |
+| `watch_rtc.h` | RTC PCF85063 (desde v0.3.0): `watch_rtc_init()` copia la hora al reloj del sistema (`time()`/`localtime_r()`); si el RTC la perdio, pone la de compilacion. `watch_rtc_set_time()` la ajusta. |
+| `watch_nvs.h` | `watch_nvs_init()` (desde v0.3.0): unico punto de init de la NVS, compartida por todas las apps en modo launcher (un namespace por app, ver [ARCHITECTURE](docs/ARCHITECTURE.md#persistencia)). |
 | `watch_launcher.h` | Modo launcher (desde v0.2.0): `watch_launcher_boot_once()` al principio de `app_main`, `watch_launcher_is_available()` para mostrar "Salir" y `watch_launcher_exit()` para volver. Sin launcher no hacen nada. Ver [ARCHITECTURE](docs/ARCHITECTURE.md#modo-launcher). |
 
 Todo usa el bus I2C del BSP (`bsp_i2c_get_handle()`, que lo inicializa en el primer uso). `imu_service` no es thread-safe: llamarlo siempre desde el mismo task.
@@ -34,7 +36,7 @@ dependencies:
   watch_board:
     git: https://github.com/Sethyrus/ESP32Watch-core.git
     path: components/watch_board
-    version: v0.2.0
+    version: v0.3.0
 ```
 
 Y en el `CMakeLists.txt` del componente que lo use: `REQUIRES watch_board`.
@@ -50,7 +52,7 @@ Para desarrollar `core` y una app a la vez, sustituir temporalmente la dependenc
 
 ## Ejemplo
 
-`examples/basic` inicializa I2C, IMU y botones y los loguea por serie:
+`examples/basic` inicializa NVS, I2C, RTC, IMU y botones y los loguea por serie:
 
 ```sh
 source "$HOME/.espressif/v5.5.4/esp-idf/export.sh"

@@ -26,10 +26,11 @@ Usarlo ahora introduciria:
 - Mas reglas de navegacion, status bar, recents y gestos.
 - Mayor superficie de problemas antes de validar la placa.
 
+El multi-app ya esta resuelto con un launcher propio que cambia de app reiniciando (ver "Modo Launcher"), sin lifecycle compartido.
+
 Brookesia se considerara si el producto necesita:
 
-- Launcher multi-app tipo telefono.
-- Apps aisladas con lifecycle formal.
+- Varias apps vivas a la vez en un mismo firmware, con lifecycle formal.
 - Integracion fuerte con SquareLine.
 - Servicios de audio/video/AI de Espressif.
 - Experiencia mas cercana a un sistema operativo movil.
@@ -47,29 +48,27 @@ Cada firmware (app) vive en su propio repo y comparte lo comun a traves de este:
 
 Las apps dependen de `watch_board` via ESP Component Manager (`git` + `path` + `version` en `main/idf_component.yml`), fijado en `dependencies.lock`. Lo especifico de una app se queda en su repo; algo pasa a `core` cuando es hardware puro o lo usan dos apps.
 
-## Estructura Recomendada De Una App
+## Estructura De Una App
 
-Mantener `main` pequeno. Cuando una pieza sea reutilizable o crezca, moverla a un componente.
-
-Estructura inicial:
+Es el patron que siguen todas las apps (partir de `ESP32Watch-template`):
 
 ```text
 main/
-├── main.c
-└── idf_component.yml
-```
-
-Estructura sugerida al crecer:
-
-```text
+├── main.c               # solo arranque: watch_launcher_boot_once() y <app>_start()
+└── idf_component.yml    # watch_board fijado por tag
 components/
-├── ui_shell/            # navegacion global, tema, pantallas base
-└── apps/                # apps o demos si se adopta arquitectura modular
-main/
-└── main.c               # solo bootstrap
+├── <app>_app/           # la app: init de placa, tareas, UI, ajustes (Kconfig propio si hace falta)
+└── <app>_engine/        # opcional: logica pura sin hardware (fisica, juego...), como fluid_engine
+docs/<APP>_DESIGN.md     # diseno y decisiones de la app
+partitions.csv           # copia de la tabla comun del launcher
 ```
 
-Si se usa `components/apps/*`, actualizar el `CMakeLists.txt` raiz con `EXTRA_COMPONENT_DIRS`.
+Separar motor y app cuando la logica es grande: el motor no incluye BSP ni LVGL y se puede razonar (o probar) aparte. `ESP-IDF` encuentra `components/*` solo, sin `EXTRA_COMPONENT_DIRS`.
+
+Dos formas de usar el display, segun la app:
+
+- UI con LVGL: `bsp_display_start()` (Maze, Launcher, template).
+- Framebuffer propio a pantalla completa: `bsp_display_new()` y dibujar sobre el panel (Doom, Fluid). LVGL puede seguir usandose solo para menus.
 
 ## Reglas LVGL
 
@@ -82,17 +81,20 @@ Si se usa `components/apps/*`, actualizar el `CMakeLists.txt` raiz con `EXTRA_CO
 
 La app no deberia hablar directamente con todos los registros de hardware una vez que crezca. Encapsular:
 
-- `imu_service`: init QMI8658, calibracion, ejes de pantalla, filtros.
-- `rtc_service`: hora/fecha PCF85063, fallback SNTP si aparece Wi-Fi.
-- `power_service`: AXP2101, voltajes, bateria, PWR key.
-- `storage_service`: NVS, SPIFFS y SD.
-- `audio_service`: speaker/mic sobre BSP codec APIs.
+- IMU: init QMI8658, calibracion, ejes de pantalla, filtros.
+- RTC: hora/fecha PCF85063, fallback SNTP si aparece Wi-Fi.
+- Energia: AXP2101, voltajes, bateria, PWR key, sleep/dimming.
+- Almacenamiento: NVS, SPIFFS y SD.
+- Audio: speaker/mic sobre BSP codec APIs.
 
 Estado actual en `components/watch_board` de este repo:
 
-- `imu_service`: implementado (QMI8658, calibracion, ejes de pantalla, suavizado). Validado en ESP32Watch-Maze.
-- `watch_buttons`: primitivas raw de `BOOT` (GPIO0) y pulsacion corta de `PWR` (IRQ del AXP2101). El debounce y la logica de pulsacion corta/larga quedan en cada app. Validado en ESP32Watch-Doom (PWR) y Maze/Doom (BOOT).
-- `rtc_service`, `power_service`, `storage_service`, `audio_service`: pendientes.
+- `imu_service`: implementado (QMI8658, calibracion, ejes de pantalla, suavizado). Validado en Maze y Fluid.
+- `watch_buttons`: `BOOT` (GPIO0) raw y con debounce (`watch_boot_debouncer_*`, pulsacion corta y larga) y pulsacion corta de `PWR` (IRQ del AXP2101). Validado en Maze, Doom, Fluid y Launcher (el debouncer, desde v0.3.0, aun no lo usan las apps: lo adoptan cuando se toquen).
+- `watch_rtc`: PCF85063, hora local sin zona horaria copiada al reloj del sistema. Validado en Fluid, de donde viene.
+- `watch_nvs`: init unica de la NVS compartida (ver "Persistencia").
+- `watch_launcher`: modo launcher (ver "Modo Launcher").
+- Energia (bateria, sleep, dimming), SD y audio: pendientes. Hoy cada app usa el BSP directamente (Doom: SD y audio).
 
 Antes de crear servicios permanentes, completar o actualizar `docs/BRINGUP.md` con resultados reales de hardware. No convertir suposiciones de wiki en APIs definitivas sin validacion si afectan energia, botones, bateria o pinout externo.
 
@@ -103,7 +105,7 @@ Reglas iniciales:
 - `BOOT` puede ser input directo por `GPIO0`, activo bajo.
 - `PWR` debe tratarse como evento de PMU: el esquematico lo lleva a `PWRON` del AXP2101 y la pulsacion corta se lee por su IRQ (`watch_pwr_key_take_short_press()`). La wiki habla de `EXIO6`; no usar `SYS_OUT/GPIO10` por arrastre de experimentos previos.
 - El long press de `PWR` cercano a 6 s apaga la placa, asi que la UX no debe depender de mantenerlo pulsado demasiado tiempo.
-- Toda politica de sleep, dimming o wake debe vivir en `power_service`, no dispersa en pantallas/apps.
+- Toda politica de sleep, dimming o wake debe vivir en un servicio de energia en `watch_board` (pendiente), no dispersa en pantallas/apps.
 
 ### Convencion De Botones
 
@@ -140,6 +142,19 @@ Detalles, tabla y script de grabacion (`flash_all.sh`) en el README del launcher
 
 Usar NVS para preferencias pequenas y SPIFFS/SD para datos medianos o assets.
 
+La NVS es una sola para todo el reloj: en modo launcher la comparten todas las apps. Por eso:
+
+- Inicializarla siempre con `watch_nvs_init()`. Si esta llena o tiene formato viejo la borra entera, lo que afecta a todas las apps, y lo deja en el log.
+- Cada app usa solo su namespace (maximo 15 caracteres) y nunca borra la particion completa:
+
+| App | Namespace |
+| --- | --- |
+| Launcher | `launcher` (ultima app abierta) |
+| Fluid | `fluid` (ajustes) |
+| Maze, Doom | Sin NVS por ahora |
+
+Una app nueva que use NVS anade aqui su namespace.
+
 Datos candidatos para NVS:
 
 - Brillo.
@@ -162,6 +177,6 @@ No depender de `sdkconfig` para estado del proyecto.
 
 Las apps usan la tabla comun del launcher (ver "Modo Launcher"): un cambio de offsets o slots se hace en `ESP32Watch-Launcher` y se copia a cada app. Si se introducen coredumps o assets grandes en flash, redisenar esa tabla antes de escribir codigo que dependa de offsets/tamanos.
 
-## DESIGN.md
+## Documentos De Diseno
 
-No hay `DESIGN.md` aun porque todavia no hay un producto final cerrado. Si el proyecto se fija como Poketch, reloj, launcher, Doom watch u otra direccion, crear un `DESIGN.md` de producto con UX, apps, navegacion y alcance.
+Cada app documenta su diseno en su repo (`docs/MAZE_DESIGN.md`, `docs/FLUID_DESIGN.md`, `docs/DOOM_PORT.md`). Lo que afecta a todas las apps (botones, launcher, persistencia, particiones) vive en este documento.
