@@ -16,6 +16,7 @@
 
 static const char *TAG = "watch_rtc";
 static i2c_master_dev_handle_t s_dev;
+static bool s_time_lost;
 
 static inline int from_bcd(uint8_t v)
 {
@@ -121,6 +122,7 @@ esp_err_t watch_rtc_init(bool set_from_build)
         ESP_LOGW(TAG, "RTC read failed: %s", esp_err_to_name(err));
         return err;
     }
+    s_time_lost = !valid;
     if (!valid || set_from_build) {
         build_time(&tm);
         err = write_tm(&tm);
@@ -150,4 +152,29 @@ esp_err_t watch_rtc_set_time(int hours, int minutes)
     esp_err_t err = write_tm(&tm);
     set_system_clock(&tm); // keep the session consistent even if the RTC write failed
     return err;
+}
+
+esp_err_t watch_rtc_set_datetime(const struct tm *in)
+{
+    if (s_dev == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (in->tm_year < 100 || in->tm_year > 199) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    struct tm tm = *in;
+    tm.tm_isdst = 0;
+    time_t t = mktime(&tm); // normalizes the fields and fills the weekday
+    localtime_r(&t, &tm);
+    esp_err_t err = write_tm(&tm);
+    set_system_clock(&tm);
+    if (err == ESP_OK) {
+        s_time_lost = false;
+    }
+    return err;
+}
+
+bool watch_rtc_time_was_lost(void)
+{
+    return s_time_lost;
 }

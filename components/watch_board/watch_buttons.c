@@ -7,13 +7,11 @@
 #include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "watch_pmu_priv.h"
 
 #define WATCH_BOOT_GPIO GPIO_NUM_0
 #define WATCH_BOOT_DEFAULT_DEBOUNCE_MS 30
 
-#define AXP2101_ADDR 0x34
-#define AXP2101_INTEN2 0x41
-#define AXP2101_INTSTS2 0x49
 #define AXP2101_PKEY_SHORT_IRQ_BIT (1 << 3)
 #define AXP2101_POLL_TIMEOUT_MS 5
 #define AXP2101_INIT_TIMEOUT_MS 50
@@ -102,18 +100,8 @@ esp_err_t watch_pwr_key_init(void)
         return ESP_OK;
     }
 
-    i2c_master_bus_handle_t i2c_bus = bsp_i2c_get_handle();
-    if (i2c_bus == NULL) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    const i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = AXP2101_ADDR,
-        .scl_speed_hz = 400000,
-    };
     i2c_master_dev_handle_t dev = NULL;
-    esp_err_t err = i2c_master_bus_add_device(i2c_bus, &dev_cfg, &dev);
+    esp_err_t err = watch_pmu_get(&dev);
     if (err != ESP_OK) {
         return err;
     }
@@ -127,7 +115,6 @@ esp_err_t watch_pwr_key_init(void)
     }
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "PWR short-press IRQ enable failed: %s", esp_err_to_name(err));
-        i2c_master_bus_rm_device(dev);
         return err;
     }
 

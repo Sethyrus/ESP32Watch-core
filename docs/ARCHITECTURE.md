@@ -94,7 +94,10 @@ Estado actual en `components/watch_board` de este repo:
 - `watch_rtc`: PCF85063, hora local sin zona horaria copiada al reloj del sistema. Validado en Fluid, de donde viene.
 - `watch_nvs`: init unica de la NVS compartida (ver "Persistencia").
 - `watch_launcher`: modo launcher (ver "Modo Launcher").
-- Energia (bateria, sleep, dimming), SD y audio: pendientes. Hoy cada app usa el BSP directamente (Doom: SD y audio).
+- `watch_display`: display y LVGL por el camino SPI (evita el fallo del BSP) y sleep del panel. Validado en el Launcher.
+- `watch_power`: sleep con pantalla apagada hasta BOOT/PWR (light sleep en bateria), limpieza de perifericos y apagado. Validado en el Launcher.
+- `watch_battery`: estado de bateria y carga del AXP2101. Validado en el Launcher.
+- SD y audio: pendientes. Hoy cada app usa el BSP directamente (Doom: SD y audio).
 
 Antes de crear servicios permanentes, completar o actualizar `docs/BRINGUP.md` con resultados reales de hardware. No convertir suposiciones de wiki en APIs definitivas sin validacion si afectan energia, botones, bateria o pinout externo.
 
@@ -105,7 +108,7 @@ Reglas iniciales:
 - `BOOT` puede ser input directo por `GPIO0`, activo bajo.
 - `PWR` debe tratarse como evento de PMU: el esquematico lo lleva a `PWRON` del AXP2101 y la pulsacion corta se lee por su IRQ (`watch_pwr_key_take_short_press()`). La wiki habla de `EXIO6`; no usar `SYS_OUT/GPIO10` por arrastre de experimentos previos.
 - El long press de `PWR` cercano a 6 s apaga la placa, asi que la UX no debe depender de mantenerlo pulsado demasiado tiempo.
-- Toda politica de sleep, dimming o wake debe vivir en un servicio de energia en `watch_board` (pendiente), no dispersa en pantallas/apps.
+- Toda politica de sleep, dimming o wake debe vivir en `watch_power` (`watch_board`), no dispersa en pantallas/apps.
 
 ### Convencion De Botones
 

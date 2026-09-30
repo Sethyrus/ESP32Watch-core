@@ -5,7 +5,7 @@
 - Target hardware is Waveshare `ESP32-S3-Touch-AMOLED-2.06`; full details in `docs/HARDWARE.md`.
 - Baseline stack is `ESP-IDF 5.5.4` + `waveshare/esp32_s3_touch_amoled_2_06` BSP. Do not migrate to ESP-IDF 6.x or ESP-Brookesia unless explicitly requested.
 - `components/watch_board` is consumed by apps via ESP Component Manager (`git` + `path` + `version` tag). Its public API is a contract: breaking changes need a new tag and a note in README.
-- Public headers: `imu_service.h`, `watch_buttons.h` (raw BOOT, BOOT debouncer, PWR short press), `watch_rtc.h`, `watch_nvs.h`, `watch_launcher.h`. Keep README's API table in sync.
+- Public headers: `imu_service.h`, `watch_buttons.h` (raw BOOT, BOOT debouncer, PWR short press), `watch_rtc.h`, `watch_nvs.h`, `watch_display.h`, `watch_power.h`, `watch_battery.h`, `watch_launcher.h`. AXP2101 access is shared through the private `watch_pmu_priv.h`; do not add a second device handle for 0x34. Keep README's API table in sync.
 - Only add code here when it is hardware-level or used by two or more apps, and after validating it on real hardware (see `docs/BRINGUP.md`).
 
 ## Commands
