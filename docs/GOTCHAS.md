@@ -116,7 +116,7 @@ Centralizar el mapeo en una sola funcion para evitar aplicar doble inversion en 
 
 Aunque la placa los tiene, `BSP_CAPS_IMU` y `BSP_CAPS_BUTTONS` son 0. Para IMU usar `waveshare/qmi8658`; para RTC/PMU crear componente propio o portar lo minimo de los ejemplos oficiales. Para botones, `BOOT` es GPIO0, pero `PWR` aparece en wiki como `EXIO6`, no como GPIO directo del ESP32-S3.
 
-Pines utiles del esquematico que tampoco son APIs BSP: motor `GPIO18`, QMI INT `GPIO21`, RTC INT `GPIO39`, LCD TE `GPIO13`, `SYS_OUT/GPIO10` y pads externos USB/I2C/UART. Validar antes de usarlos.
+Pines utiles del esquematico que tampoco son APIs BSP: motor `GPIO18` (sin motor en la placa), QMI INT `GPIO21`, RTC INT `GPIO39`, LCD TE `GPIO13`, `SYS_OUT/GPIO10` y pads externos USB/I2C/UART. Validar antes de usarlos.
 
 ## Un Solo Owner Para El Bus I2C
 

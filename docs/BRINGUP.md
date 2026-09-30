@@ -185,7 +185,7 @@ Validar solo cuando se necesiten:
 
 | Senal | Pin/net | Resultado |
 | --- | --- | --- |
-| Motor | `GPIO18` | Pendiente |
+| Motor | `GPIO18` | Sin motor: nivel alto/bajo y PWM 200 Hz/20 kHz durante 2 s sin vibracion (la wiki tampoco lo lista) |
 | QMI8658 INT1 | `GPIO21` | Pendiente |
 | RTC INT | `GPIO39` | Pendiente |
 | LCD TE | `GPIO13` | Pendiente |

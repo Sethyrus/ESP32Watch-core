@@ -88,7 +88,7 @@ Estos valores vienen del `Kconfig` del BSP y conviene tratarlos como contrato pr
 | I2S DOUT | GPIO40 | BSP |
 | I2S DSIN | GPIO42 | BSP |
 | Speaker amp enable | GPIO46 | BSP |
-| Motor | GPIO18 | Esquematico; driver/transistor de motor, no expuesto por BSP. |
+| Motor | GPIO18 | Esquematico; transistor de motor, pero la placa no lleva motor (ver BRINGUP). |
 | SYS_OUT | GPIO10 | Esquematico; ruta de sistema/PMU, no tratar como GPIO libre sin validar. |
 | BOOT button | GPIO0 | ESP32-S3 convention / ejemplo oficial |
 | PWR button | AXP2101 `PWRON`, wiki `EXIO6` | No es GPIO ESP32 directo documentado por BSP. |
@@ -99,7 +99,7 @@ Estos pines o nets aparecen en el esquematico oficial, pero no tienen API de alt
 
 | Senal / pad | Pin o net | Uso probable | Cuidado |
 | --- | --- | --- | --- |
-| Motor | `GPIO18` | Motor/vibracion por transistor | Validar corriente, driver y polaridad antes de activar. |
+| Motor | `GPIO18` | Motor/vibracion por transistor | Sin motor: probado, no vibra (BRINGUP). |
 | QMI8658 INT1 | `GPIO21` | Interrupcion IMU | El driver recomendado puede funcionar por polling; no asumir IRQ configurada. |
 | RTC INT | `GPIO39` | Alarma/interrupcion PCF85063 | Requiere driver RTC propio y configuracion de GPIO input. |
 | LCD TE | `GPIO13` | Tearing-effect del panel | El BSP no lo usa directamente; no activar anti-tearing suponiendo TE conectado al driver. |
