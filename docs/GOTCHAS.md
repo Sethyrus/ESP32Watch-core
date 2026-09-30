@@ -192,6 +192,14 @@ Notas de FAQ:
 - Si el monitor queda en `waiting for download...`, volver a alimentar/reiniciar la placa.
 - Para volver a encender tras apagado completo, la FAQ indica mantener `PWR` al menos 6 s y luego pulsar `PWR` otra vez.
 
+## microSD: Aviso Falso De Nombres Largos
+
+`bsp_sdcard_mount()` (BSP v1.0.7) avisa "Long filenames on SD card are disabled in menuconfig!" aunque esten activos: comprueba `CONFIG_FATFS_LONG_FILENAMES`, que ya no existe en ESP-IDF 5.5. Lo que cuenta es `CONFIG_FATFS_LFN_HEAP=y` (o `_STACK`) en `sdkconfig.defaults`; por defecto es `CONFIG_FATFS_LFN_NONE` (solo nombres 8.3). Un `sdkconfig` ya generado no recoge el cambio de `sdkconfig.defaults`: borrarlo y recompilar.
+
+## USB-OTG Deja El Puerto Sin Consola Tras Reiniciar
+
+El ESP32-S3 tiene un solo PHY USB: por defecto lo usa USB-Serial-JTAG (consola y flasheo); TinyUSB (p. ej. disco USB) lo pasa a USB-OTG. El selector (`RTCCNTL.usb_conf.sw_hw_usb_phy_sel` / `sw_usb_phy_sel`) esta en el dominio RTC, asi que `esp_restart()` no lo devuelve: tras salir del modo USB el Mac no ve ni consola ni dispositivo. Solo lo arregla un apagado completo (PWR 6 s). Solucion (Launcher `os_usb_restore_port()`): poner los dos bits a 0 antes de reiniciar y tambien al arrancar.
+
 ## No Borrar `dependencies.lock` Por Rutina
 
 La wiki de Waveshare recomienda borrar `build`, `managed_components` y `dependencies.lock` en algun troubleshooting de demos. En este repo `dependencies.lock` es parte del estado reproducible: borrar `build/` y `managed_components/` es limpieza local; cambiar o regenerar `dependencies.lock` solo si se aceptan nuevas versiones resueltas.

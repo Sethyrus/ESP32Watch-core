@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "esp_err.h"
@@ -21,6 +22,13 @@ typedef enum {
 // Needs watch_display_start(), watch_boot_button_init() and watch_pwr_key_init().
 // Call it from a task that does not hold the LVGL lock.
 watch_wake_t watch_power_sleep(uint32_t timeout_ms);
+
+// Like watch_power_sleep(), but the chip does not light-sleep while stay_awake()
+// returns true (NULL = always): the panel is off and LVGL paused, while other tasks
+// (audio capture, SD writes) keep running. stay_awake() is called every 50 ms from
+// the calling task; once it returns false the chip light-sleeps as watch_power_sleep()
+// does, without turning the screen on. Same requirements as watch_power_sleep().
+watch_wake_t watch_power_screen_off(uint32_t timeout_ms, bool (*stay_awake)(void));
 
 // Puts in low power what an app may have left running across the reboot into this
 // firmware (esp_restart() does not reset them): the QMI8658 IMU and the speaker amp.

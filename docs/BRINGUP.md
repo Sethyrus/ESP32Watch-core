@@ -68,8 +68,8 @@ Direcciones esperadas:
 | QMI8658 IMU | `0x6B` preferida, `0x6A` posible | Pendiente |
 | PCF85063 RTC | `0x51` tipica | Pendiente |
 | AXP2101 PMU | `0x34` | Pendiente |
-| ES8311 speaker codec | `0x30` | Pendiente |
-| ES7210 mic ADC | `0x40` 7-bit (`0x80` macro en `esp_codec_dev`) | Pendiente |
+| ES8311 speaker codec | `0x30` | OK (el altavoz suena: Launcher, Doom) |
+| ES7210 mic ADC | `0x40` 7-bit (`0x80` macro en `esp_codec_dev`) | OK (graba: Recorder) |
 
 Si falta un dispositivo, comprobar alimentacion/PMU antes de asumir fallo del sensor.
 
@@ -213,6 +213,8 @@ Validar:
 | Card detect | No declarado. |
 | GPIO17 | Solo referencia Arduino/SPI-style, no usar sin validar. |
 
+Validado 2026-09-30 (Recorder y Launcher) con una microSD de 2 GB en FAT: `bsp_sdcard_mount()` monta en ~50 ms; escritura continua de 32 KB/s en bloques de 16 KB sin desbordes en un buffer de 256 KB. Nombres largos con `CONFIG_FATFS_LFN_HEAP=y` (ver GOTCHAS). Tambien como disco USB en un Mac con TinyUSB (Launcher, Ajustes > Conectar al ordenador).
+
 ## Audio
 
 Validar en fase propia porque audio toca I2S, codecs y amplificador.
@@ -223,6 +225,12 @@ Validar en fase propia porque audio toca I2S, codecs y amplificador.
 | Mic | `bsp_audio_codec_microphone_init()`, ES7210. |
 | I2S | MCLK `GPIO16`, BCLK `GPIO41`, WS `GPIO45`, DOUT `GPIO40`, DIN `GPIO42`. |
 | Default BSP | Mono duplex, 16-bit, 22050 Hz si `bsp_audio_init(NULL)`. |
+
+Validado 2026-09-30:
+
+- Altavoz: ES8311 a 16 kHz mono (avisos del Launcher) y 22050 Hz estereo (Doom). A volumen 100 suena bajo para escuchar voz.
+- Micro: ES7210 en estereo a 16 kHz, 16 bits (`MIC1` y `MIC2` en L/R, niveles casi iguales). Con 30 dB de ganancia, voz a la distancia del brazo da ~-35 dBFS; la Recorder usa 37,5 dB (maximo) y +6 dB digitales, con mas ruido de fondo.
+- Micro y altavoz comparten el puerto I2S (TX y RX full duplex): abiertos a la vez deben ir a la misma frecuencia.
 
 ## Bateria Y Termica
 

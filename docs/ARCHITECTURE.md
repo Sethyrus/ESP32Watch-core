@@ -95,9 +95,9 @@ Estado actual en `components/watch_board` de este repo:
 - `watch_nvs`: init unica de la NVS compartida (ver "Persistencia").
 - `watch_launcher`: modo launcher (ver "Modo Launcher").
 - `watch_display`: display y LVGL por el camino SPI (evita el fallo del BSP) y sleep del panel. Validado en el Launcher.
-- `watch_power`: sleep con pantalla apagada hasta BOOT/PWR (light sleep en bateria), limpieza de perifericos y apagado. Validado en el Launcher.
+- `watch_power`: sleep con pantalla apagada hasta BOOT/PWR (light sleep en bateria), pantalla apagada con el chip despierto mientras una app esta ocupada (`watch_power_screen_off`, validado en la Recorder), limpieza de perifericos y apagado. Validado en el Launcher.
 - `watch_battery`: estado de bateria y carga del AXP2101. Validado en el Launcher.
-- SD y audio: pendientes. Hoy cada app usa el BSP directamente (Doom: SD y audio).
+- SD y audio: sin servicio en core. Cada app usa el BSP directamente (Doom: SD y audio; Recorder: micro, altavoz y SD; Launcher: altavoz y la SD como disco USB).
 
 Antes de crear servicios permanentes, completar o actualizar `docs/BRINGUP.md` con resultados reales de hardware. No convertir suposiciones de wiki en APIs definitivas sin validacion si afectan energia, botones, bateria o pinout externo.
 
@@ -154,6 +154,7 @@ La NVS es una sola para todo el reloj: en modo launcher la comparten todas las a
 | --- | --- |
 | Launcher | `launcher` (ultima app abierta) |
 | Fluid | `fluid` (ajustes) |
+| Recorder | `recorder` (volumen); lee `bright` y `timeout` de `launcher` sin escribirlos |
 | Maze, Doom | Sin NVS por ahora |
 
 Una app nueva que use NVS anade aqui su namespace.

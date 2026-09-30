@@ -23,7 +23,7 @@ Stack: `ESP-IDF 5.5.4` + BSP `waveshare/esp32_s3_touch_amoled_2_06`.
 | `watch_rtc.h` | RTC PCF85063 (desde v0.3.0): `watch_rtc_init()` copia la hora al reloj del sistema (`time()`/`localtime_r()`); si el RTC la perdio, pone la de compilacion. `watch_rtc_set_time()` y `watch_rtc_set_datetime()` (v0.4.0) la ajustan; `watch_rtc_time_was_lost()` avisa de que hay que ponerla. |
 | `watch_nvs.h` | `watch_nvs_init()` (desde v0.3.0): unico punto de init de la NVS, compartida por todas las apps en modo launcher (un namespace por app, ver [ARCHITECTURE](docs/ARCHITECTURE.md#persistencia)). |
 | `watch_display.h` | Pantalla + tactil + LVGL (v0.4.0), sustituto de `bsp_display_start()`, que registra el panel como RGB (ver [GOTCHAS](docs/GOTCHAS.md)). Brillo recordado y `watch_display_sleep()`/`watch_display_wake()` para apagar el panel de verdad. |
-| `watch_power.h` | Energia (v0.4.0): `watch_power_sleep()` apaga la pantalla y duerme (light sleep en bateria, despierto con USB) hasta BOOT, PWR o un timeout; `watch_power_quiet_peripherals()` apaga IMU y amplificador que una app dejo encendidos; `watch_power_off()`. |
+| `watch_power.h` | Energia (v0.4.0): `watch_power_sleep()` apaga la pantalla y duerme (light sleep en bateria, despierto con USB) hasta BOOT, PWR o un timeout; `watch_power_screen_off()` (v0.5.0) igual pero sin light sleep mientras la app este ocupada (p. ej. grabando audio); `watch_power_quiet_peripherals()` apaga IMU y amplificador que una app dejo encendidos; `watch_power_off()`. |
 | `watch_battery.h` | Bateria del AXP2101 (v0.4.0): presente, USB, cargando/descargando, mV y porcentaje del gauge. |
 | `watch_launcher.h` | Modo launcher (desde v0.2.0): `watch_launcher_boot_once()` al principio de `app_main`, `watch_launcher_is_available()` para mostrar "Salir" y `watch_launcher_exit()` para volver. Sin launcher no hacen nada. Ver [ARCHITECTURE](docs/ARCHITECTURE.md#modo-launcher). |
 
@@ -39,7 +39,7 @@ dependencies:
   watch_board:
     git: https://github.com/Sethyrus/ESP32Watch-core.git
     path: components/watch_board
-    version: v0.4.0
+    version: v0.5.0
 ```
 
 Y en el `CMakeLists.txt` del componente que lo use: `REQUIRES watch_board`.

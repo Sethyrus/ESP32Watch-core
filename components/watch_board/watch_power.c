@@ -54,7 +54,9 @@ static bool light_sleep_once(void)
     return boot;
 }
 
-watch_wake_t watch_power_sleep(uint32_t timeout_ms)
+// Panel off until BOOT, PWR or the deadline. The chip stays awake (50 ms polls) with
+// USB power or while stay_awake() returns true; otherwise it light-sleeps.
+static watch_wake_t screen_off_until(uint32_t timeout_ms, bool (*stay_awake)(void))
 {
     const int64_t start = esp_timer_get_time();
     const int64_t deadline = timeout_ms != 0 ? start + (int64_t)timeout_ms * 1000 : INT64_MAX;
@@ -69,7 +71,7 @@ watch_wake_t watch_power_sleep(uint32_t timeout_ms)
     watch_wake_t reason;
     for (;;) {
         bool boot;
-        if (usb) {
+        if (usb || (stay_awake != NULL && stay_awake())) {
             vTaskDelay(pdMS_TO_TICKS(USB_AWAKE_POLL_MS));
             boot = watch_boot_button_is_pressed();
         } else {
@@ -106,6 +108,21 @@ watch_wake_t watch_power_sleep(uint32_t timeout_ms)
         }
     }
     return reason;
+}
+
+watch_wake_t watch_power_sleep(uint32_t timeout_ms)
+{
+    return screen_off_until(timeout_ms, NULL);
+}
+
+static bool always(void)
+{
+    return true;
+}
+
+watch_wake_t watch_power_screen_off(uint32_t timeout_ms, bool (*stay_awake)(void))
+{
+    return screen_off_until(timeout_ms, stay_awake != NULL ? stay_awake : always);
 }
 
 void watch_power_quiet_peripherals(void)
