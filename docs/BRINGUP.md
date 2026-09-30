@@ -54,7 +54,7 @@ Anotar aqui:
 | Device | Pendiente |
 | Detected flash size | 32 MB (boot log `spi_flash`) |
 
-Los proyectos siguen en 16 MB. Si se cambia a `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y`, rehacer `partitions.csv` y mantener la app por debajo de 16 MB.
+Los proyectos usan `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y` con el codigo por debajo de 16 MB. Validado: lectura/escritura de datos por encima de 16 MB y FAT de solo lectura montado desde `0x1000000` (ver [GOTCHAS](GOTCHAS.md)).
 
 ## I2C Scan
 

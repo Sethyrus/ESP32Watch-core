@@ -11,7 +11,7 @@ Fuentes usadas: wiki oficial Waveshare, repo oficial `waveshareteam/ESP32-S3-Tou
 | MCU | `ESP32-S3R8` | Dual-core LX7, hasta 240 MHz. |
 | Wireless | Wi-Fi 2.4 GHz + Bluetooth LE 5 | Antena SMD integrada segun wiki. |
 | PSRAM | 8 MB octal | Necesaria para LVGL fluido y buffers de display. |
-| Flash | 32 MB (confirmado en placa real) | Chip `GD25Q256EYIGR` = 256 Mbit; los ejemplos ESP-IDF oficiales usan config de 16 MB. |
+| Flash | 32 MB (confirmado en placa real) | Chip `GD25Q256EYIGR` = 256 Mbit; los ejemplos ESP-IDF oficiales usan config de 16 MB; los proyectos ESP32Watch usan los 32 MB con el codigo por debajo de 16 MB (ver GOTCHAS). |
 | Display | AMOLED 2.06", 410 x 502 | QSPI, 16-bit RGB565 en BSP. |
 | Touch | `FT3168` | I2C; BSP usa driver compatible `FT5x06`. |
 | IMU | `QMI8658` | Acelerometro + giroscopio 6 ejes, I2C. |

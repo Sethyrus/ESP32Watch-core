@@ -30,7 +30,13 @@ CONFIG_SPIRAM_SPEED_80M=y
 
 La wiki anuncia 32 MB de flash y el esquematico monta `GD25Q256EYIGR` (256 Mbit / 32 MB), pero los ejemplos ESP-IDF oficiales de Waveshare usan `CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y`.
 
-Confirmado en placa real: el chip es de 32 MB (el boot log avisa `Detected size(32768k) larger than the size in the binary image header(16384k)`, inocuo). Los proyectos siguen en 16 MB por compatibilidad; para usar 32 MB cambiar `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y` y rehacer `partitions.csv`.
+Confirmado en placa real: el chip es de 32 MB. Con la config de 16 MB de los ejemplos el boot log avisa `Detected size(32768k) larger than the size in the binary image header(16384k)` (inocuo).
+
+Los proyectos ESP32Watch usan `CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y`. Reglas:
+
+- El codigo (bootloader, launcher, apps) va por debajo de los 16 MB. Ejecutar codigo por encima (`CONFIG_BOOTLOADER_CACHE_32BIT_ADDR_QUAD_FLASH`) es experimental en ESP-IDF 5.5 y no se usa.
+- Los datos por encima de 16 MB funcionan con la API de particiones. Validado en esta placa (GD25Q256): borrado, escritura y lectura en 0x1f00000, sin solapamiento con la mitad baja, y un FAT de solo lectura montado desde 0x1000000.
+- El GD25Q256 esta en la lista oficial de chips con direcciones de 32 bits de ESP-IDF.
 
 Aunque `CONFIG_ESPTOOLPY_FLASHMODE_QIO=y`, el comando final de esptool puede mostrar `--flash_mode dio`. En ESP-IDF 5.5 esto es normal para QIO/QOUT: esptool flashea el bootloader en modo DIO y el bootloader cambia a quad durante la inicializacion.
 
@@ -149,7 +155,7 @@ Decision: para ESP-IDF usar `bsp_sdcard_mount()` y no configurar `GPIO17` salvo 
 
 ## Factory Firmware Puede Asumir 32 MB
 
-El repo oficial contiene firmware factory/test para self-check. Uno de los bins vistos mide unos 29 MB, asi que no encaja con la config baseline de 16 MB de este repo. No flashear factory bins grandes sin confirmar flash real y offsets.
+El repo oficial contiene firmware factory/test para self-check. Uno de los bins vistos mide unos 29 MB, asi que no encaja con los primeros 16 MB donde vive el codigo de este repo. No flashear factory bins grandes sin confirmar flash real y offsets.
 
 ## Arduino LVGL Menos Fluido Que ESP-IDF
 
