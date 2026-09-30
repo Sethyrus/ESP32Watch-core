@@ -153,6 +153,23 @@ Validar:
 
 No implementar politica de sleep/bateria antes de entender bien PWR/PMU.
 
+## Energia Y Sleep (validado 2026-09-30)
+
+Prueba aislada en la placa (firmware de prueba fuera de los repos), con USB y en bateria:
+
+| Area | Resultado |
+| --- | --- |
+| Panel sleep | `0x28` + `0x10` (off + sleep in) y `0x11` + 120 ms + `0x29` (sleep out + on) por `esp_lcd_panel_io_tx_param(io, (0x02 << 24) \| (cmd << 8), NULL, 0)`: 50/50 ciclos OK. |
+| Light sleep | 200/200 ciclos OK con LVGL parado (`lvgl_port_stop()`/`lvgl_port_resume()`); el I2C responde justo al despertar (200/200). |
+| Despertar | BOOT (GPIO0, nivel bajo), tactil (GPIO38, nivel bajo) y PWR por timer de 200 ms + lectura de `INTSTS2`: todos OK. Pantalla de vuelta en ~150 ms (dominan los 120 ms del sleep out). |
+| USB | En light sleep el USB-Serial-JTAG no responde (ni log ni flasheo); vuelve al quedarse despierto. Regla: no dormir con VBUS. Para recuperar un reloj dormido: PWR 6 s y encender normal, o BOOT + PWR para modo descarga. |
+| Perifericos | `esp_restart()` no resetea el IMU: una app lo dejo a 500 Hz (`CTRL7=0x03`). El launcher debe apagarlo al arrancar (`CTRL7=0x00`), igual que el amplificador (GPIO46). |
+| Display con LVGL | Registrar el panel con `lvgl_port_add_disp()` (camino SPI) funciona; ver "BSP Registra El Panel Como RGB" en GOTCHAS. |
+| Arranque | `app_main` a 0,80 s, primer frame a 1,28 s. El test de PSRAM (`CONFIG_SPIRAM_MEMTEST`) cuesta ~260 ms; pantalla + tactil ~370 ms. |
+| Consumo en reposo | Pendiente de medir (horas en bateria o multimetro en serie). |
+
+AXP2101 leido por I2C sin libreria: `0x00` bit 3 bateria presente, bit 5 VBUS good; `0x01` bits 7:5 estado (1 cargando, 2 descargando), bit 3 = 0 con VBUS; VBAT en mV en `0x34`/`0x35` (5+8 bits, requiere bit 0 de `0x30`); porcentaje del gauge en `0xA4`; apagado con bit 0 de `0x10`.
+
 ## Botones
 
 | Boton | Ruta esperada | Validacion |

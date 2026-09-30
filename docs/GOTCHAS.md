@@ -70,6 +70,12 @@ El BSP tiene comentarios heredados de otros paneles/placas. Priorizar el codigo 
 - El BSP aplica `esp_lcd_panel_set_gap(panel_handle, 0x16, 0)` al panel. Si se reemplaza la ruta de display, no olvidar validar el offset X.
 - `LCD_TE` existe en el esquematico como `GPIO13`, pero el BSP v1.0.7 no lo usa directamente en su ruta LVGL.
 
+## BSP Registra El Panel Como RGB
+
+`bsp_display_start()` (BSP 1.0.7) registra el panel QSPI con `lvgl_port_add_disp_rgb()`. En el S3 eso llama a `esp_lcd_rgb_panel_register_event_callbacks()` sobre un `sh8601_panel_t`, que es mucho mas pequeno que `esp_rgb_panel_t`: escribe 5 punteros fuera de la estructura, en el heap. Ademas `flush_ready` se da sin esperar a la DMA.
+
+Funciona en pruebas cortas, pero es corrupcion de heap latente. Para firmwares que corren horas, crear el display con `bsp_display_new()` + `lvgl_port_add_disp()` (validado en placa, ver BRINGUP "Energia Y Sleep"). Afecta a los que usan `bsp_display_start()`: Launcher, template y Maze.
+
 ## ES7210: `0x40` En Scan, `0x80` En Macro
 
 El esquematico marca el ES7210 como `0x40` 7-bit. `esp_codec_dev` define `ES7210_CODEC_DEFAULT_ADDR` como `0x80`, que se usa en la API del codec. Para un I2C scan normal, esperar `0x40`.
