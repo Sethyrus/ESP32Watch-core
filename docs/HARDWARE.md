@@ -265,23 +265,22 @@ Configuracion de carga vista en el ejemplo oficial:
 - Terminacion: `XPOWERS_AXP2101_CHG_ITERM_25MA`.
 - Tension objetivo: `XPOWERS_AXP2101_CHG_VOL_4V2`.
 
-Mapa de rails visto en el esquematico:
+Mapa de rails segun el esquematico (`ESP32-S3-Touch-AMOLED-2.06.pdf`, revisado 2026-10-01) y estado leido en la placa con el firmware arrancado (`0x80=0x0F`, `0x81=0x00`, `0x90=0xFF`, `0x91=0x01`):
 
-| Rail AXP2101 | Net / uso en placa |
-| --- | --- |
-| `DCDC1` | `VCC3V3` |
-| `DCDC2` | `0.9 V` |
-| `DCDC3` | `1.2 V` |
-| `DCDC4` | `1.8 V` |
-| `DCDC5` | `NC` |
-| `RTCLDO` | `VCC-RTC` |
-| `ALDO1` | `VL1_3.3V` |
-| `ALDO2` | `VL2_3.3V` |
-| `ALDO3` | `VCC3V` |
-| `ALDO4` | `VL3_1.8V` |
-| `BLDO1` | Sin uso claro en el texto extraido; revisar esquematico antes de tocar. |
-| `BLDO2` | `VL_2.8V` |
-| `CPUSLDO` | `VCL_1.2V` |
+| Rail AXP2101 | Net | Alimenta | Estado leido |
+| --- | --- | --- | --- |
+| `DCDC1` | `VCC3V3` | ESP32-S3, flash, tactil, microSD, IMU, RTC, ES8311 (PVDD/DVDD), amplificador, pull-ups I2C | On, 3,3 V |
+| `DCDC2`/`DCDC3`/`DCDC4` | 0,9 / 1,2 / 1,8 V | Nada: `VIN2..4`/`LX2..4` sin conectar | On (sin efecto) |
+| `DCDC5` | `NC` | - | Off |
+| `RTCLDO` | `VCC-RTC` | PCF85063 e IRQ del AXP | - |
+| `ALDO1` | `A3V3` | Todo el ES7210 (VDDD/VDDP/VDDA/VDDM) y AVDD del ES8311 | On, 3,3 V |
+| `ALDO2` | `VL2_3.3V` | Pull-up de `DSI_PWR_EN` del conector del AMOLED (R10): enable de alimentacion del panel | On, 3,3 V |
+| `ALDO3` | `VCC3V` | Pad `P1` del motor (sin motor montado) | On, 3,0 V |
+| `ALDO4`, `BLDO1`, `BLDO2`, `CPUSLDO`, `DLDO1/2` | - | Nada visible en el esquematico | Todos on |
+
+Sin PWM forzado en ningun DCDC (`0x81=0x00`). El ADC mide VBAT y TS (`0x30=0x03`). No hay medida de corriente: el ADC solo da VBAT, VBUS, VSYS, TS y temperatura, asi que el consumo solo se mide por la caida de VBAT en bateria o con un medidor externo.
+
+Antes de escribir cualquier registro del AXP2101, leer [PMU_SAFETY](PMU_SAFETY.md): que no tocar, volcado de referencia y recuperacion. `0x03` (IC type) debe leer `0x4A`; si no, mirar `0xFF` (pagina).
 
 No copiar el ejemplo `01_AXP2101` como politica de energia final sin revisar estos rails. El ejemplo desactiva varios canales para demostrar la PMU y despues reactiva un subconjunto; una app real puede necesitar mantener activos display, touch, codecs, RTC o sensores.
 
@@ -379,3 +378,4 @@ Aunque estos pads ya salen del esquematico, validar continuidad y funcion en la 
 - El puerto Type-C de flashing/debug sale directamente del USB nativo del ESP32-S3.
 - La placa tiene circuito de descarga automatica, asi que normalmente `idf.py flash` no requiere pulsar `BOOT`.
 - Si un firmware rompe USB, deja la CPU colgada o el auto-download no entra, mantener `BOOT` al alimentar/resetear fuerza modo descarga.
+- Si la placa no enciende de ninguna forma o la PMU lee datos raros, ver [PMU_SAFETY](PMU_SAFETY.md#recuperacion-por-sintoma).

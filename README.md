@@ -71,6 +71,7 @@ idf.py build flash monitor
 | [docs/HARDWARE.md](docs/HARDWARE.md) | Piezas, pines, buses, sensores, direcciones I2C y APIs. |
 | [docs/SETUP.md](docs/SETUP.md) | Instalacion de ESP-IDF 5.5.4, build/flash, config y dependencias. |
 | [docs/GOTCHAS.md](docs/GOTCHAS.md) | Problemas conocidos y precauciones. |
+| [docs/PMU_SAFETY.md](docs/PMU_SAFETY.md) | AXP2101: que no escribir, diagnostico y recuperacion si la placa no enciende. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Decision LVGL+BSP, organizacion en repos, criterios Brookesia. |
 | [docs/BRINGUP.md](docs/BRINGUP.md) | Checklist de validacion de hardware. |
 | [docs/SOURCES.md](docs/SOURCES.md) | Enlaces oficiales, datasheets y ejemplos. |

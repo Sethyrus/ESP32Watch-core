@@ -166,9 +166,24 @@ Prueba aislada en la placa (firmware de prueba fuera de los repos), con USB y en
 | Perifericos | `esp_restart()` no resetea el IMU: una app lo dejo a 500 Hz (`CTRL7=0x03`). El launcher debe apagarlo al arrancar (`CTRL7=0x00`), igual que el amplificador (GPIO46). |
 | Display con LVGL | Registrar el panel con `lvgl_port_add_disp()` (camino SPI) funciona; ver "BSP Registra El Panel Como RGB" en GOTCHAS. |
 | Arranque | `app_main` a 0,80 s, primer frame a 1,28 s. El test de PSRAM (`CONFIG_SPIRAM_MEMTEST`) cuesta ~260 ms; pantalla + tactil ~370 ms. |
-| Consumo en reposo | Pendiente de medir (horas en bateria o multimetro en serie). |
+| Consumo en reposo | Ver "Bluetooth Y Consumo" abajo: con auto light sleep y BLE, ~8-9 %/h (~11-12 h). El launcher (light sleep manual, sin BLE) sigue sin medir. |
 
 AXP2101 leido por I2C sin libreria: `0x00` bit 3 bateria presente, bit 5 VBUS good; `0x01` bits 7:5 estado (1 cargando, 2 descargando), bit 3 = 0 con VBUS; VBAT en mV en `0x34`/`0x35` (5+8 bits, requiere bit 0 de `0x30`); porcentaje del gauge en `0xA4`; apagado con bit 0 de `0x10`.
+
+## Bluetooth Y Consumo (2026-09-30 / 2026-10-01)
+
+Prueba con un firmware desechable (BleLab, en `ota_4`): NimBLE como periferico Nordic UART que Gadgetbridge (Android) adopta como Bangle.js, light sleep automatico (`CONFIG_PM_ENABLE` + tickless idle) y registro de bateria en NVS cada 5 min.
+
+| Area | Resultado |
+| --- | --- |
+| Gadgetbridge | Funciona: hora y zona horaria (`setTime`/`E.setTimeZone`), notificaciones con tildes, llamada, buscar movil, reconexion cifrada. |
+| Flash | NimBLE + PM suman ~345 KB (BleLab 1017 KB frente a 673 KB de la plantilla). |
+| RAM interna | El controlador BLE ocupa ~52 KB. Con los buffers de LVGL quedan 12-30 KB libres segun la config; ver GOTCHAS. |
+| Reloj de bajo consumo | No hay cristal de 32 kHz (GPIO15/16 son SDA e I2S MCLK): con conexion solo vale el XTAL principal encendido en sleep (`CONFIG_BT_CTRL_LPCLK_SEL_MAIN_XTAL` + `CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP`). |
+| Intervalo de conexion | Se pide 500-600 ms, latencia 2. Android lo baja a 30 ms al enviar y no lo sube: hay que volver a pedirlo tras ~10 s sin trafico. |
+| Consumo, LVGL despertando cada 2 ms | ~24 %/h con BLE y ~20 %/h sin BLE (pantalla apagada): el chip casi no dormia. |
+| Consumo, LVGL suspendido | Light sleep 84-90 % del tiempo (~6 despertares/s: BLE y sondeo de PWR cada 200 ms). Noche entera con BLE conectado: ~8-9 %/h, 100 % a 23 % en 7,6 h (bateria 400 mAh). |
+| Registros en reposo | Ningun periferico despierto: IMU apagado, codecs en valores de fabrica, tactil pasa a monitor a los 10 s (`0x86=01`, `0x87=0x0A`). Sospechoso principal: el panel sigue alimentado por `ALDO2` aunque este en sleep in. |
 
 ## Botones
 

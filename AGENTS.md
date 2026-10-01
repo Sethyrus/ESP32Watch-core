@@ -17,6 +17,7 @@
 - `docs/HARDWARE.md`: board parts, pins, buses, sensors, APIs and addresses.
 - `docs/SETUP.md`: ESP-IDF 5.5.4 setup, build/flash, config files and dependencies.
 - `docs/GOTCHAS.md`: known pitfalls and implementation cautions.
+- `docs/PMU_SAFETY.md`: AXP2101 rules (which registers never to write without explicit user approval), reference dump, diagnosis and recovery. Read it before any PMU write.
 - `docs/ARCHITECTURE.md`: LVGL+BSP decision, repo organization, Brookesia criteria, the app-wide button convention (BOOT = accept, PWR = back/menu) and launcher mode (`watch_launcher.h`, shared partition table owned by ESP32Watch-Launcher), app structure and shared NVS (`watch_nvs.h`, one namespace per app, listed there).
 - `docs/BRINGUP.md`: hardware validation checklist.
 - `docs/SOURCES.md`: official links, datasheets and examples.

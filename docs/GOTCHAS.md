@@ -203,3 +203,25 @@ El ESP32-S3 tiene un solo PHY USB: por defecto lo usa USB-Serial-JTAG (consola y
 ## No Borrar `dependencies.lock` Por Rutina
 
 La wiki de Waveshare recomienda borrar `build`, `managed_components` y `dependencies.lock` en algun troubleshooting de demos. En este repo `dependencies.lock` es parte del estado reproducible: borrar `build/` y `managed_components/` es limpieza local; cambiar o regenerar `dependencies.lock` solo si se aceptan nuevas versiones resueltas.
+
+## Light Sleep Automatico (PM) Con LVGL Y BLE
+
+Lecciones de BleLab (2026-09-30), para cuando el launcher pase de `esp_light_sleep_start()` manual a `CONFIG_PM_ENABLE` con tickless idle:
+
+- `CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP` y `..._TAGMEM_...` vienen activos por defecto y colgaron el chip en el primer sleep (codigo y rodata en PSRAM). Desactivarlos en `sdkconfig.defaults`.
+- `lvgl_port_stop()` desactiva los timers de LVGL; entonces `lv_timer_handler()` devuelve 1 ms y la tarea `taskLVGL` despierta cada ~2 ms, lo que impide entrar en light sleep (0 % del tiempo). Con la pantalla apagada hay que suspenderla (`vTaskSuspend(xTaskGetHandle("taskLVGL"))` con el lock de LVGL tomado) y reanudarla al encender.
+- El tactil va por interrupcion (GPIO38) y `esp_lvgl_port` lo lee aunque LVGL este parado. En light sleep el aislamiento de GPIO dispara esa linea, la lectura I2C falla y un `ESP_ERROR_CHECK` de `esp_lvgl_port_touch.c` hace abort (reinicio). Con la pantalla apagada, `lv_indev_enable(indev, false)`. Excluir SCL/SDA (14/15) del aislamiento con `gpio_sleep_sel_dis()`.
+- La pantalla encendida no gana nada durmiendo: tomar un lock `ESP_PM_NO_LIGHT_SLEEP` mientras este encendida y mientras haya USB.
+- Con USB y auto light sleep, el Mac pierde el dispositivo y no siempre lo recupera al despertar (desenchufar y enchufar). Abrir el puerto reinicia el chip. Para medir en bateria, registrar en NVS y leerlo despues.
+- El driver I2C toma `NO_LIGHT_SLEEP` durante cada transaccion: sondear PWR cada 200 ms tiene coste.
+
+## BLE Y RAM Interna
+
+El controlador BLE ocupa ~52 KB de RAM interna. Con los buffers de LVGL del display solo quedaban ~12 KB y un `xTaskCreate` de 8 KB fallo sin aviso (la app se quedo congelada con el BLE funcionando). `CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y` lleva el host NimBLE a PSRAM. Comprobar siempre el retorno de `xTaskCreate`.
+
+
+## No Cortar Los Rails Del AXP2101 Del Panel
+
+2026-10-01: una prueba apago `ALDO1`/`ALDO2`/`ALDO3` (reg `0x90`) e hiberno el tactil con la pantalla en sleep in; al volver a encenderlos, el siguiente arranque murio en el init del panel, el USB desaparecio y la placa dejo de encender (sin USB ni en modo descarga; PWR 2/10/20 s sin efecto). `ALDO2` es el enable de alimentacion del AMOLED (`DSI_PWR_EN`) mientras `VCC3V3` sigue alimentando el panel, y el AXP2101 apaga toda la placa si un DCDC cae un 15 % (`0x23=0x3F`). No escribir rails del AXP2101 desde una app sin una via de recuperacion probada.
+
+Recuperacion, reglas de que no escribir y el caso de la pagina `0xFF`: [PMU_SAFETY](PMU_SAFETY.md).

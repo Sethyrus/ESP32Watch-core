@@ -18,6 +18,12 @@ Activacion del entorno:
 source "$HOME/.espressif/v5.5.4/esp-idf/export.sh"
 ```
 
+Si `export.sh` falla con `ESP-IDF Python virtual environment ... not found` (instalacion con EIM sin `~/.espressif/python_env`), usar el script de activacion que deja EIM:
+
+```sh
+source "$HOME/.espressif/tools/activate_idf_v5.5.4.sh"
+```
+
 Comprobar version:
 
 ```sh
