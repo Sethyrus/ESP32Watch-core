@@ -27,7 +27,9 @@ esp_err_t watch_display_set_brightness(int percent);
 int watch_display_get_brightness(void);
 
 // Panel off and in sleep mode (display off + sleep in), or back on (sleep out, 120 ms,
-// display on, brightness). Stop LVGL first (watch_power_sleep() does all of it).
+// display on, brightness). Sleep also turns the touch off (INT interrupt and LVGL input
+// device) and wake turns it back on 100 ms after the panel. Stop LVGL and hold its lock
+// first (watch_power_sleep() does all of it).
 esp_err_t watch_display_sleep(void);
 esp_err_t watch_display_wake(void);
 bool watch_display_is_asleep(void);

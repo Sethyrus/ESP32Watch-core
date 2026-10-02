@@ -74,7 +74,7 @@ El BSP tiene comentarios heredados de otros paneles/placas. Priorizar el codigo 
 
 `bsp_display_start()` (BSP 1.0.7) registra el panel QSPI con `lvgl_port_add_disp_rgb()`. En el S3 eso llama a `esp_lcd_rgb_panel_register_event_callbacks()` sobre un `sh8601_panel_t`, que es mucho mas pequeno que `esp_rgb_panel_t`: escribe 5 punteros fuera de la estructura, en el heap. Ademas `flush_ready` se da sin esperar a la DMA.
 
-Funciona en pruebas cortas, pero es corrupcion de heap latente. Para firmwares que corren horas, crear el display con `bsp_display_new()` + `lvgl_port_add_disp()` (validado en placa, ver BRINGUP "Energia Y Sleep"). Afecta a los que usan `bsp_display_start()`: Launcher, template y Maze.
+Funciona en pruebas cortas, pero es corrupcion de heap latente. Para firmwares que corren horas, crear el display con `bsp_display_new()` + `lvgl_port_add_disp()` (validado en placa, ver BRINGUP "Energia Y Sleep"). `watch_display_start()` (core v0.4.0) ya lo hace asi: Launcher, Recorder, template y Maze lo usan desde core v0.5.1. Doom y Fluid usan `bsp_display_new()` con su propio framebuffer.
 
 ## ES7210: `0x40` En Scan, `0x80` En Macro
 
@@ -93,9 +93,9 @@ if (bsp_display_lock(0)) {
 
 No actualizar widgets desde tareas FreeRTOS sin lock.
 
-## Touch Ya Lo Registra El BSP
+## Touch Ya Lo Registra `watch_display`
 
-`bsp_display_start()` inicializa display, touch y el input device LVGL. No crear otro driver touch salvo que se este reemplazando el BSP.
+`watch_display_start()` (o `bsp_display_start()`, que no se usa) inicializa display, touch y el input device LVGL. No crear otro driver touch salvo que la app no use esp_lvgl_port (Doom y Fluid leen el FT3168 directamente con `esp_lcd_touch_read_data()` y toleran errores).
 
 ## QMI8658: Unidades Y Ejes
 
@@ -210,15 +210,28 @@ Lecciones de BleLab (2026-09-30), para cuando el launcher pase de `esp_light_sle
 
 - `CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP` y `..._TAGMEM_...` vienen activos por defecto y colgaron el chip en el primer sleep (codigo y rodata en PSRAM). Desactivarlos en `sdkconfig.defaults`.
 - `lvgl_port_stop()` desactiva los timers de LVGL; entonces `lv_timer_handler()` devuelve 1 ms y la tarea `taskLVGL` despierta cada ~2 ms, lo que impide entrar en light sleep (0 % del tiempo). Con la pantalla apagada hay que suspenderla (`vTaskSuspend(xTaskGetHandle("taskLVGL"))` con el lock de LVGL tomado) y reanudarla al encender.
-- El tactil va por interrupcion (GPIO38) y `esp_lvgl_port` lo lee aunque LVGL este parado. En light sleep el aislamiento de GPIO dispara esa linea, la lectura I2C falla y un `ESP_ERROR_CHECK` de `esp_lvgl_port_touch.c` hace abort (reinicio). Con la pantalla apagada, `lv_indev_enable(indev, false)`. Excluir SCL/SDA (14/15) del aislamiento con `gpio_sleep_sel_dis()`.
+- El tactil tambien aborta en sleep: ver "Tactil En Sleep: Abort Al Despertar" abajo.
 - La pantalla encendida no gana nada durmiendo: tomar un lock `ESP_PM_NO_LIGHT_SLEEP` mientras este encendida y mientras haya USB.
 - Con USB y auto light sleep, el Mac pierde el dispositivo y no siempre lo recupera al despertar (desenchufar y enchufar). Abrir el puerto reinicia el chip. Para medir en bateria, registrar en NVS y leerlo despues.
 - El driver I2C toma `NO_LIGHT_SLEEP` durante cada transaccion: sondear PWR cada 200 ms tiene coste.
 
+## Tactil En Sleep: Abort Al Despertar
+
+El tactil va por interrupcion (GPIO38): cada flanco deja pendiente en `esp_lvgl_port` una lectura I2C del FT3168. En light sleep (manual o automatico) el aislamiento de GPIO da picos en esa linea, y la lectura se hace en cuanto `taskLVGL` vuelve a correr, justo al despertar. Si falla, el `ESP_ERROR_CHECK(esp_lcd_touch_read_data())` de `esp_lvgl_port_touch.c` hace abort y el chip se reinicia. En el launcher se ve como un parpadeo al despertar con BOOT; con el arranque desde una app, como volver al launcher.
+
+Traza (BleTest, 2026-10-02): `abort` <- `_esp_error_check_failed` <- `lvgl_port_touchpad_read` <- `lv_indev_read` <- `lvgl_port_task`.
+
+Arreglo (core v0.5.1, en `watch_display_sleep()`/`watch_display_wake()`, y por tanto en `watch_power`):
+
+- Al dormir: `gpio_intr_disable(BSP_LCD_TOUCH_INT)` y `lv_indev_enable(touch, false)`; un indev desactivado no se lee.
+- Al despertar: panel encendido, 100 ms, y entonces indev e interrupcion activos otra vez.
+- `gpio_sleep_sel_dis()` en SCL/SDA (14/15) y en GPIO38 para que el sleep no los aisle.
+
+Una app que duerma por su cuenta (sin `watch_power`) debe hacer lo mismo.
+
 ## BLE Y RAM Interna
 
 El controlador BLE ocupa ~52 KB de RAM interna. Con los buffers de LVGL del display solo quedaban ~12 KB y un `xTaskCreate` de 8 KB fallo sin aviso (la app se quedo congelada con el BLE funcionando). `CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y` lleva el host NimBLE a PSRAM. Comprobar siempre el retorno de `xTaskCreate`.
-
 
 ## No Cortar Los Rails Del AXP2101 Del Panel
 

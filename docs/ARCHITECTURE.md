@@ -67,7 +67,7 @@ Separar motor y app cuando la logica es grande: el motor no incluye BSP ni LVGL 
 
 Dos formas de usar el display, segun la app:
 
-- UI con LVGL: `bsp_display_start()` (Maze, Launcher, template).
+- UI con LVGL: `watch_display_start()` de core (Launcher, Recorder, Maze, template). Nunca `bsp_display_start()`: ver GOTCHAS "BSP Registra El Panel Como RGB".
 - Framebuffer propio a pantalla completa: `bsp_display_new()` y dibujar sobre el panel (Doom, Fluid). LVGL puede seguir usandose solo para menus.
 
 ## Reglas LVGL
@@ -94,7 +94,7 @@ Estado actual en `components/watch_board` de este repo:
 - `watch_rtc`: PCF85063, hora local sin zona horaria copiada al reloj del sistema. Validado en Fluid, de donde viene.
 - `watch_nvs`: init unica de la NVS compartida (ver "Persistencia").
 - `watch_launcher`: modo launcher (ver "Modo Launcher").
-- `watch_display`: display y LVGL por el camino SPI (evita el fallo del BSP) y sleep del panel. Validado en el Launcher.
+- `watch_display`: display y LVGL por el camino SPI (evita el fallo del BSP) y sleep del panel, con el tactil desactivado mientras duerme (ver "Tactil En Sleep" en GOTCHAS). Validado en el Launcher.
 - `watch_power`: sleep con pantalla apagada hasta BOOT/PWR (light sleep en bateria), pantalla apagada con el chip despierto mientras una app esta ocupada (`watch_power_screen_off`, validado en la Recorder), limpieza de perifericos y apagado. Validado en el Launcher.
 - `watch_battery`: estado de bateria y carga del AXP2101. Validado en el Launcher.
 - SD y audio: sin servicio en core. Cada app usa el BSP directamente (Doom: SD y audio; Recorder: micro, altavoz y SD; Launcher: altavoz y la SD como disco USB).
@@ -152,7 +152,7 @@ La NVS es una sola para todo el reloj: en modo launcher la comparten todas las a
 
 | App | Namespace |
 | --- | --- |
-| Launcher | `launcher` (ultima app abierta) |
+| Launcher | `launcher`: ultima app abierta, `bright` y `timeout` (ajustes del reloj), alarmas (`alarms`), temporizador y cronometro (`tmr_*`, `sw_*`) |
 | Fluid | `fluid` (ajustes) |
 | Recorder | `recorder` (volumen); lee `bright` y `timeout` de `launcher` sin escribirlos |
 | Maze, Doom | Sin NVS por ahora |
@@ -183,4 +183,4 @@ Las apps usan la tabla comun del launcher (ver "Modo Launcher"): un cambio de of
 
 ## Documentos De Diseno
 
-Cada app documenta su diseno en su repo (`docs/MAZE_DESIGN.md`, `docs/FLUID_DESIGN.md`, `docs/DOOM_PORT.md`). Lo que afecta a todas las apps (botones, launcher, persistencia, particiones) vive en este documento.
+Cada app documenta su diseno en su repo (`docs/MAZE_DESIGN.md`, `docs/FLUID_DESIGN.md`, `docs/DOOM_PORT.md`; el Launcher y la Recorder en su `README.md`). Lo que afecta a todas las apps (botones, launcher, persistencia, particiones) vive en este documento.

@@ -64,10 +64,10 @@ Direcciones esperadas:
 
 | Dispositivo | Direccion esperada | Resultado |
 | --- | --- | --- |
-| FT3168 touch | `0x38` | Pendiente |
-| QMI8658 IMU | `0x6B` preferida, `0x6A` posible | Pendiente |
-| PCF85063 RTC | `0x51` tipica | Pendiente |
-| AXP2101 PMU | `0x34` | Pendiente |
+| FT3168 touch | `0x38` | OK (todas las apps) |
+| QMI8658 IMU | `0x6B` preferida, `0x6A` posible | OK `0x6B` (Maze, Fluid) |
+| PCF85063 RTC | `0x51` tipica | OK (`watch_rtc`) |
+| AXP2101 PMU | `0x34` | OK (`watch_battery`, PWR) |
 | ES8311 speaker codec | `0x30` | OK (el altavoz suena: Launcher, Doom) |
 | ES7210 mic ADC | `0x40` 7-bit (`0x80` macro en `esp_codec_dev`) | OK (graba: Recorder) |
 
@@ -96,7 +96,7 @@ Validar con una pantalla simple que muestre coordenadas o cambie un boton LVGL.
 
 | Area | Esperado |
 | --- | --- |
-| Init | `bsp_display_start()` registra input device. |
+| Init | `watch_display_start()` registra el input device (`bsp_touch_new()` + `lvgl_port_add_touch()`). |
 | Coordenadas | Rango aproximado `0..409`, `0..501`. |
 | Gestos | No bloquearlos con contenedores clickables innecesarios. |
 | Reset/INT | `RST GPIO9`, `INT GPIO38` por BSP. |
@@ -138,7 +138,7 @@ Driver minimo en `watch_rtc` (core v0.3.0, validado en Fluid): lee y escribe hor
 
 ## PMU AXP2101
 
-Pendiente de wrapper propio o port minimo de XPowersLib.
+Wrapper propio desde core v0.4.0 (`watch_pmu_priv.h`, `watch_battery.h`, PWR en `watch_buttons.h`), sin XPowersLib. Antes de escribir cualquier registro, leer [PMU_SAFETY.md](PMU_SAFETY.md).
 
 Validar:
 
@@ -151,7 +151,7 @@ Validar:
 | PKEY | Usar para `PWR` si se decide integrar power key. |
 | Rails | No copiar `01_AXP2101` sin revisar mapa de rails en `docs/HARDWARE.md`. |
 
-No implementar politica de sleep/bateria antes de entender bien PWR/PMU.
+Politica de sleep: `watch_power` (core v0.4.0), validada abajo en "Energia Y Sleep".
 
 ## Energia Y Sleep (validado 2026-09-30)
 
@@ -162,11 +162,11 @@ Prueba aislada en la placa (firmware de prueba fuera de los repos), con USB y en
 | Panel sleep | `0x28` + `0x10` (off + sleep in) y `0x11` + 120 ms + `0x29` (sleep out + on) por `esp_lcd_panel_io_tx_param(io, (0x02 << 24) \| (cmd << 8), NULL, 0)`: 50/50 ciclos OK. |
 | Light sleep | 200/200 ciclos OK con LVGL parado (`lvgl_port_stop()`/`lvgl_port_resume()`); el I2C responde justo al despertar (200/200). |
 | Despertar | BOOT (GPIO0, nivel bajo), tactil (GPIO38, nivel bajo) y PWR por timer de 200 ms + lectura de `INTSTS2`: todos OK. Pantalla de vuelta en ~150 ms (dominan los 120 ms del sleep out). |
-| USB | En light sleep el USB-Serial-JTAG no responde (ni log ni flasheo); vuelve al quedarse despierto. Regla: no dormir con VBUS. Para recuperar un reloj dormido: PWR 6 s y encender normal, o BOOT + PWR para modo descarga. |
+| USB | En light sleep el USB-Serial-JTAG no responde (ni log ni flasheo); vuelve al quedarse despierto. Regla: no dormir con VBUS. Para recuperar un reloj dormido: PWR 6 s y encender normal, o mantener BOOT y reconectar el USB para modo descarga (ver [PMU_SAFETY](PMU_SAFETY.md)). |
 | Perifericos | `esp_restart()` no resetea el IMU: una app lo dejo a 500 Hz (`CTRL7=0x03`). El launcher debe apagarlo al arrancar (`CTRL7=0x00`), igual que el amplificador (GPIO46). |
 | Display con LVGL | Registrar el panel con `lvgl_port_add_disp()` (camino SPI) funciona; ver "BSP Registra El Panel Como RGB" en GOTCHAS. |
 | Arranque | `app_main` a 0,80 s, primer frame a 1,28 s. El test de PSRAM (`CONFIG_SPIRAM_MEMTEST`) cuesta ~260 ms; pantalla + tactil ~370 ms. |
-| Consumo en reposo | Ver "Bluetooth Y Consumo" abajo: con auto light sleep y BLE, ~8-9 %/h (~11-12 h). El launcher (light sleep manual, sin BLE) sigue sin medir. |
+| Consumo en reposo | Ver "Bluetooth Y Consumo" abajo: con auto light sleep y BLE, ~8-9 %/h (~11-12 h). El launcher (light sleep manual, sin BLE): ~2,9 %/h (~1,4 dias). |
 
 AXP2101 leido por I2C sin libreria: `0x00` bit 3 bateria presente, bit 5 VBUS good; `0x01` bits 7:5 estado (1 cargando, 2 descargando), bit 3 = 0 con VBUS; VBAT en mV en `0x34`/`0x35` (5+8 bits, requiere bit 0 de `0x30`); porcentaje del gauge en `0xA4`; apagado con bit 0 de `0x10`.
 
@@ -184,6 +184,7 @@ Prueba con un firmware desechable (BleLab, en `ota_4`): NimBLE como periferico N
 | Consumo, LVGL despertando cada 2 ms | ~24 %/h con BLE y ~20 %/h sin BLE (pantalla apagada): el chip casi no dormia. |
 | Consumo, LVGL suspendido | Light sleep 84-90 % del tiempo (~6 despertares/s: BLE y sondeo de PWR cada 200 ms). Noche entera con BLE conectado: ~8-9 %/h, 100 % a 23 % en 7,6 h (bateria 400 mAh). |
 | Registros en reposo | Ningun periferico despierto: IMU apagado, codecs en valores de fabrica, tactil pasa a monitor a los 10 s (`0x86=01`, `0x87=0x0A`). Sospechoso principal: el panel sigue alimentado por `ALDO2` aunque este en sleep in. |
+| Launcher sin BLE (base) | Light sleep manual, sondeo de PWR cada 200 ms, pantalla apagada. Noche del 2026-10-01: 100 % (recien desenchufado) a 75 % / 3,87 V en 8,6 h, ~2,9 %/h (~12 mA). El BLE con auto light sleep suma ~5-6 %/h (~20-24 mA): la mayor parte del gasto de BleLab. Aun asi la base queda lejos de los ~1-2 mA esperables del ESP32-S3 dormido. |
 
 ## Botones
 

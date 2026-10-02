@@ -3,6 +3,7 @@
 #include "bsp/display.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/touch.h"
+#include "driver/gpio.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_touch.h"
 #include "esp_log.h"
@@ -15,12 +16,14 @@
 #define LCD_CMD_DISPOFF 0x28
 #define LCD_CMD_DISPON 0x29
 #define LCD_SLPOUT_DELAY_MS 120
+#define TOUCH_SETTLE_MS 100
 
 static const char *TAG = "watch_display";
 
 static esp_lcd_panel_io_handle_t s_io;
 static esp_lcd_panel_handle_t s_panel;
 static lv_display_t *s_disp;
+static lv_indev_t *s_touch;
 static int s_brightness = 80;
 static bool s_asleep;
 
@@ -89,13 +92,19 @@ lv_display_t *watch_display_start(const watch_display_config_t *config)
         err = bsp_touch_new(NULL, &tp);
         if (err == ESP_OK) {
             const lvgl_port_touch_cfg_t touch_cfg = {.disp = s_disp, .handle = tp};
-            if (lvgl_port_add_touch(&touch_cfg) == NULL) {
+            s_touch = lvgl_port_add_touch(&touch_cfg);
+            if (s_touch == NULL) {
                 ESP_LOGW(TAG, "Touch input not registered");
             }
         } else {
             ESP_LOGW(TAG, "Touch unavailable: %s", esp_err_to_name(err));
         }
     }
+    // Keep the shared I2C bus and the touch INT line as configured in light sleep: the
+    // default GPIO isolation glitches them (core docs/GOTCHAS.md).
+    gpio_sleep_sel_dis(BSP_I2C_SCL);
+    gpio_sleep_sel_dis(BSP_I2C_SDA);
+    gpio_sleep_sel_dis(BSP_LCD_TOUCH_INT);
     watch_display_set_brightness(cfg->brightness);
     return s_disp;
 }
@@ -115,6 +124,12 @@ esp_err_t watch_display_sleep(void)
 {
     if (s_io == NULL) {
         return ESP_ERR_INVALID_STATE;
+    }
+    // No touch reads while asleep: a glitch on the INT line queues one, esp_lvgl_port
+    // runs it on wake, and a failed I2C read hits its ESP_ERROR_CHECK (abort, reboot).
+    if (s_touch != NULL) {
+        gpio_intr_disable(BSP_LCD_TOUCH_INT);
+        lv_indev_enable(s_touch, false);
     }
     esp_err_t err = panel_cmd(LCD_CMD_DISPOFF);
     if (err == ESP_OK) {
@@ -136,6 +151,11 @@ esp_err_t watch_display_wake(void)
     }
     s_asleep = false;
     bsp_display_brightness_set(s_brightness);
+    if (s_touch != NULL) {
+        vTaskDelay(pdMS_TO_TICKS(TOUCH_SETTLE_MS));
+        lv_indev_enable(s_touch, true);
+        gpio_intr_enable(BSP_LCD_TOUCH_INT);
+    }
     return err;
 }
 

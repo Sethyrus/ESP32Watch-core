@@ -33,7 +33,7 @@ Lo que no se sabe: que puso `0xFF` a 1. Ningun codigo nuestro, ni el BSP, escrib
 
 ## Lo Que Si Escribe Core
 
-Son las unicas escrituras de PMU en uso, validadas durante semanas:
+Son las unicas escrituras de PMU en uso (desde core v0.4.0, 2026-09-30; sin problemas desde entonces):
 
 | Registro | Escritura | Donde |
 | --- | --- | --- |

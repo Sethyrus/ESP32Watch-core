@@ -90,7 +90,7 @@ Cada proyecto define su propio `partitions.csv`. La tabla base (template y ejemp
 | `factory` | app/factory | `8M` | Firmware. |
 | `storage` | data/spiffs | `7M` | SPIFFS para assets. |
 
-Las apps (Maze, Doom, Fluid) usan en cambio la tabla comun de [ESP32Watch-Launcher](https://github.com/Sethyrus/ESP32Watch-Launcher): `nvs`, `otadata`, `phy_init`, `factory` 1,5 MB (launcher), siete slots OTA de 2 MB (una app cada uno; hoy hay tres) y `storage` FAT de 16 MB por encima de los 16 MB de flash (WAD de Doom). Asi se pueden grabar todas a la vez y cambiar entre ellas desde el launcher (ver [ARCHITECTURE](ARCHITECTURE.md#modo-launcher)). No hay particion de coredump. Si se necesitan crash dumps persistentes o assets mas grandes, redisenar la tabla antes de escribir codigo que dependa de offsets/tamanos.
+Las apps (Maze, Doom, Fluid, Recorder) usan en cambio la tabla comun de [ESP32Watch-Launcher](https://github.com/Sethyrus/ESP32Watch-Launcher): `nvs`, `otadata`, `phy_init`, `factory` 1,5 MB (launcher), siete slots OTA de 2 MB (una app cada uno: hoy cuatro en `ota_0`-`ota_3`; `ota_4` se usa para firmwares de prueba) y `storage` FAT de 16 MB por encima de los 16 MB de flash (WAD de Doom). Asi se pueden grabar todas a la vez y cambiar entre ellas desde el launcher (ver [ARCHITECTURE](ARCHITECTURE.md#modo-launcher)). No hay particion de coredump. Si se necesitan crash dumps persistentes o assets mas grandes, redisenar la tabla antes de escribir codigo que dependa de offsets/tamanos.
 
 ## VS Code
 
