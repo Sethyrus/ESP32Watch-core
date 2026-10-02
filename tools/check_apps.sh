@@ -47,7 +47,7 @@ for repo in "$WS"/ESP32Watch-*; do
         warn "partitions.csv differs from the Launcher's"
     fi
 
-    if grep -rqs --include='*.c' 'bsp_display_start(' "$repo/main" "$repo/components"; then
+    if grep -rhs --include='*.c' 'bsp_display_start(' "$repo/main" "$repo/components" | grep -qvE '^\s*(//|\*)'; then
         warn "uses bsp_display_start() (registers the panel as RGB, see GOTCHAS)"
     fi
 
