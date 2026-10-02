@@ -238,3 +238,11 @@ El controlador BLE ocupa ~52 KB de RAM interna. Con los buffers de LVGL del disp
 2026-10-01: una prueba apago `ALDO1`/`ALDO2`/`ALDO3` (reg `0x90`) e hiberno el tactil con la pantalla en sleep in; al volver a encenderlos, el siguiente arranque murio en el init del panel, el USB desaparecio y la placa dejo de encender (sin USB ni en modo descarga; PWR 2/10/20 s sin efecto). `ALDO2` es el enable de alimentacion del AMOLED (`DSI_PWR_EN`) mientras `VCC3V3` sigue alimentando el panel, y el AXP2101 apaga toda la placa si un DCDC cae un 15 % (`0x23=0x3F`). No escribir rails del AXP2101 desde una app sin una via de recuperacion probada.
 
 Recuperacion, reglas de que no escribir y el caso de la pagina `0xFF`: [PMU_SAFETY](PMU_SAFETY.md).
+
+## Diagnostico De Cuelgues En Bateria
+
+Con bateria y light sleep no hay consola USB, y abrir el puerto reinicia el chip: un cuelgue no deja rastro.
+
+- `esp_reset_reason()` sobrevive al cambio de firmware (lo guarda un registro RTC, no la RAM), asi que el launcher ve el panic o watchdog de una app al arrancar. Lo apunta en NVS y lo muestra en Ajustes > Acerca de.
+- `RTC_NOINIT` no sirve para pasar datos de una app al launcher: los primeros 32 bytes de RTC slow (`0x50000000`) los reescribe cada imagen al arrancar (segmento `.rtc.force_slow`), y el launcher usa la RTC fast como heap.
+- Para depurar a fondo, una app de prueba puede envolver el panic con `-Wl,--wrap=esp_panic_handler` (funcion en IRAM, sin tocar flash ni PSRAM) y guardar el backtrace en RTC; al volver a arrancar, pasarlo a NVS. Leer la NVS con `esptool read_flash 0x9000 0x6000` y `nvs_tool.py`.

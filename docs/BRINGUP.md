@@ -166,7 +166,7 @@ Prueba aislada en la placa (firmware de prueba fuera de los repos), con USB y en
 | Perifericos | `esp_restart()` no resetea el IMU: una app lo dejo a 500 Hz (`CTRL7=0x03`). El launcher debe apagarlo al arrancar (`CTRL7=0x00`), igual que el amplificador (GPIO46). |
 | Display con LVGL | Registrar el panel con `lvgl_port_add_disp()` (camino SPI) funciona; ver "BSP Registra El Panel Como RGB" en GOTCHAS. |
 | Arranque | `app_main` a 0,80 s, primer frame a 1,28 s. El test de PSRAM (`CONFIG_SPIRAM_MEMTEST`) cuesta ~260 ms; pantalla + tactil ~370 ms. |
-| Consumo en reposo | Ver "Bluetooth Y Consumo" abajo: con auto light sleep y BLE, ~8-9 %/h (~11-12 h). El launcher (light sleep manual, sin BLE): ~2,9 %/h (~1,4 dias). |
+| Consumo en reposo | Ver "Bluetooth Y Consumo" abajo: con auto light sleep y BLE, ~7-9 %/h (~11-13 h) en cualquier modo BLE. El launcher (light sleep manual, sin BLE): ~2,9 %/h (~1,4 dias). |
 
 AXP2101 leido por I2C sin libreria: `0x00` bit 3 bateria presente, bit 5 VBUS good; `0x01` bits 7:5 estado (1 cargando, 2 descargando), bit 3 = 0 con VBUS; VBAT en mV en `0x34`/`0x35` (5+8 bits, requiere bit 0 de `0x30`); porcentaje del gauge en `0xA4`; apagado con bit 0 de `0x10`.
 
@@ -185,6 +185,7 @@ Prueba con un firmware desechable (BleLab, en `ota_4`): NimBLE como periferico N
 | Consumo, LVGL suspendido | Light sleep 84-90 % del tiempo (~6 despertares/s: BLE y sondeo de PWR cada 200 ms). Noche entera con BLE conectado: ~8-9 %/h, 100 % a 23 % en 7,6 h (bateria 400 mAh). |
 | Registros en reposo | Ningun periferico despierto: IMU apagado, codecs en valores de fabrica, tactil pasa a monitor a los 10 s (`0x86=01`, `0x87=0x0A`). Sospechoso principal: el panel sigue alimentado por `ALDO2` aunque este en sleep in. |
 | Launcher sin BLE (base) | Light sleep manual, sondeo de PWR cada 200 ms, pantalla apagada. Noche del 2026-10-01: 100 % (recien desenchufado) a 75 % / 3,87 V en 8,6 h, ~2,9 %/h (~12 mA). El BLE con auto light sleep suma ~5-6 %/h (~20-24 mA): la mayor parte del gasto de BleLab. Aun asi la base queda lejos de los ~1-2 mA esperables del ESP32-S3 dormido. |
+| Modos BLE por separado (BleTest, 2026-10-02) | Bloques de 1 h rotando, 12,3 h en bateria (100 % a 15 %, fin previsto), auto light sleep, sin pantalla. Caida de tension por hora, comparando bloques vecinos (el % del gauge no sirve por debajo de ~40 %): conectado a 600 ms ~62 mV/h, conectado a 2 s ~61 mV/h, anuncio no conectable ~66 mV/h, anuncio conectable ~50 mV/h, **BLE apagado ~24 mV/h** (3,6 %/h, como el launcher). Con el BLE encendido el gasto se multiplica por 2,5-3,5 haga lo que haga: el intervalo de conexion no cambia nada. Es un coste fijo, y el sospechoso es el XTAL principal encendido en sleep (unico reloj de bajo consumo valido sin cristal de 32 kHz) mas ~8 % de tiempo despierto (light sleep 92 % frente a 99 %). Tras la hora de anuncio no conectable, Gadgetbridge no volvio a conectar en 8 h aunque el reloj anunciaba conectable. |
 
 ## Botones
 

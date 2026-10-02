@@ -21,6 +21,11 @@ echo "core: component $CORE_VER, last tag $LAST_TAG"
 [ "$CORE_VER" = "$LAST_TAG" ] || warn "core component version $CORE_VER is not tagged (last tag $LAST_TAG)"
 
 PART_REF="$(md5_of "$LAUNCHER/partitions.csv")"
+# System options every app must set like the template (flash, PSRAM, CPU, tick, boot).
+SYS_KEYS="CONFIG_ESPTOOLPY_FLASHMODE_QIO CONFIG_ESPTOOLPY_FLASHFREQ_80M CONFIG_ESPTOOLPY_FLASHSIZE_32MB
+CONFIG_PARTITION_TABLE_CUSTOM CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240 CONFIG_SPIRAM CONFIG_SPIRAM_MODE_OCT
+CONFIG_SPIRAM_SPEED_80M CONFIG_SPIRAM_FETCH_INSTRUCTIONS CONFIG_SPIRAM_RODATA CONFIG_SPIRAM_MEMTEST CONFIG_FREERTOS_HZ"
+defaults_value() { grep -E "^$1=" "$2/sdkconfig.defaults" 2>/dev/null | head -1 | cut -d= -f2-; }
 CI_REF="$(md5_of "$TEMPLATE/.github/workflows/build.yml")"
 
 for repo in "$WS"/ESP32Watch-*; do
@@ -45,6 +50,16 @@ for repo in "$WS"/ESP32Watch-*; do
         ok "partitions.csv = Launcher"
     else
         warn "partitions.csv differs from the Launcher's"
+    fi
+
+    bad=""
+    for key in $SYS_KEYS; do
+        [ "$(defaults_value "$key" "$repo")" = "$(defaults_value "$key" "$TEMPLATE")" ] || bad="$bad $key"
+    done
+    if [ -z "$bad" ]; then
+        ok "system options in sdkconfig.defaults = template"
+    else
+        warn "sdkconfig.defaults differs from the template in:$bad"
     fi
 
     if grep -rhs --include='*.c' 'bsp_display_start(' "$repo/main" "$repo/components" | grep -qvE '^\s*(//|\*)'; then
