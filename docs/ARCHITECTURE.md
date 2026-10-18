@@ -155,6 +155,7 @@ La NVS es una sola para todo el reloj: en modo launcher la comparten todas las a
 | Launcher | `launcher`: ultima app abierta (`last`, `in_app`), `bright` y `timeout` (ajustes del reloj), alarmas (`alarms`), temporizador y cronometro (`tmr_*`, `sw_*`), reinicios inesperados (`rst_n`, `rst_last`) |
 | Fluid | `fluid` (ajustes) |
 | Recorder | `recorder` (volumen); lee `bright` y `timeout` de `launcher` sin escribirlos |
+| Pet | `pet`: partida en dos copias (`save_a`, `save_b`, blob versionado con CRC); lee `bright` y `timeout` de `launcher` sin escribirlos |
 | Maze, Doom | Sin NVS por ahora |
 
 Una app nueva que use NVS anade aqui su namespace.

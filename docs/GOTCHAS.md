@@ -233,6 +233,16 @@ Una app que duerma por su cuenta (sin `watch_power`) debe hacer lo mismo.
 
 El controlador BLE ocupa ~52 KB de RAM interna. Con los buffers de LVGL del display solo quedaban ~12 KB y un `xTaskCreate` de 8 KB fallo sin aviso (la app se quedo congelada con el BLE funcionando). `CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y` lleva el host NimBLE a PSRAM. Comprobar siempre el retorno de `xTaskCreate`.
 
+## WiFi Solo Para Escanear (Sin Conectar)
+
+Primera vez que el reloj usa WiFi (app Pet; medido el 2026-10-17). Para escuchar balizas no hace falta `esp_netif` ni lwip: solo el bucle de eventos por defecto, `esp_wifi_init` con `nvs_enable = 0`, `esp_wifi_set_storage(WIFI_STORAGE_RAM)`, modo STA y `esp_wifi_scan_start` pasivo bloqueante. Con `CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n`, `CONFIG_ESP_WIFI_ENABLE_WPA3_SAE=n` y las opciones `*_IRAM_OPT=n` el binario crece ~0,27 MiB.
+
+- **RAM interna:** con LVGL (`buffer_lines = 20`) quedan ~165 KB libres; con WiFi iniciado ~89 KB y el minimo durante un escaneo fue 72-86 KB. `esp_wifi_deinit()` devuelve los ~64 KB, asi que se inicia y se apaga en cada escaneo (init ~150 ms, deinit 13-60 ms, escaneo pasivo de 13 canales a 150 ms ~2 s). Con `CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y` parte del heap de WiFi va a PSRAM.
+- **Registros de escaneo:** `wifi_ap_record_t` x 40 son ~5 KB; no ponerlos en la pila de la tarea ni en `.bss`.
+- **Pila:** `pet_render_creature` usa ~5,5 KB; la pila por defecto de `main` (3,5 KB) desborda. `CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192` o tareas con >= 8 KB.
+- **`watch_power_screen_off(timeout, stay_awake)` no llama a `stay_awake` con USB conectado:** el chip no duerme, asi que el callback no se invoca (documentado en `watch_power.h`). Una app que escanee con la pantalla apagada y use `stay_awake` como reloj de tareas no escanea nada con USB: necesita ademas una tarea propia que mire el calendario (en bateria los tics se detienen en light sleep, alli sirve el callback).
+- Un `sdkconfig` antiguo gana a `sdkconfig.defaults`: tras anadir opciones, borrar `sdkconfig` y reconfigurar (es un fichero generado).
+
 ## No Cortar Los Rails Del AXP2101 Del Panel
 
 2026-10-01: una prueba apago `ALDO1`/`ALDO2`/`ALDO3` (reg `0x90`) e hiberno el tactil con la pantalla en sleep in; al volver a encenderlos, el siguiente arranque murio en el init del panel, el USB desaparecio y la placa dejo de encender (sin USB ni en modo descarga; PWR 2/10/20 s sin efecto). `ALDO2` es el enable de alimentacion del AMOLED (`DSI_PWR_EN`) mientras `VCC3V3` sigue alimentando el panel, y el AXP2101 apaga toda la placa si un DCDC cae un 15 % (`0x23=0x3F`). No escribir rails del AXP2101 desde una app sin una via de recuperacion probada.

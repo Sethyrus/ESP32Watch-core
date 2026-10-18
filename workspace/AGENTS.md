@@ -8,7 +8,7 @@ Instructions for agents started in the workspace folder that holds all the ESP32
 | `ESP32Watch-core` | Source of truth: `watch_board` component (shared board services) and all hardware docs (`docs/`). |
 | `ESP32Watch-template` | Minimal app pattern; its README has the checklist for creating a new app. |
 | `ESP32Watch-Launcher` | Watch "OS" in `factory`; owns the shared `partitions.csv`, `apps.conf` and `flash_all.sh`. |
-| `ESP32Watch-Maze`, `-Doom`, `-Fluid`, `-Recorder` | Apps, each in its own OTA slot, booted from the Launcher. |
+| `ESP32Watch-Maze`, `-Doom`, `-Fluid`, `-Recorder`, `-Pet` | Apps, each in its own OTA slot, booted from the Launcher. |
 
 ## Working Across Repos
 - Before changing a repo, read its `AGENTS.md`; its rules (including commit rules) apply inside it. Run git and `idf.py` from inside that repo.
